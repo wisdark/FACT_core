@@ -1,7 +1,8 @@
 import json
 import logging
 import pickle
-from typing import Set
+from hashlib import md5
+from typing import List, Set
 
 import gridfs
 from common_helper_files import get_safe_name
@@ -95,11 +96,11 @@ class MongoInterfaceCommon(MongoInterface):  # pylint: disable=too-many-instance
         query = {'_id': {'$in': list(uid_list)}}
         return query
 
-    def _convert_to_firmware(self, entry, analysis_filter=None):
+    def _convert_to_firmware(self, entry: dict, analysis_filter: List[str] = None) -> Firmware:
         firmware = Firmware()
         firmware.uid = entry['_id']
         firmware.size = entry['size']
-        firmware.set_name(entry['file_name'])
+        firmware.file_name = entry['file_name']
         firmware.set_device_name(entry['device_name'])
         firmware.set_device_class(entry['device_class'])
         firmware.set_release_date(convert_time_to_str(entry['release_date']))
@@ -120,11 +121,11 @@ class MongoInterfaceCommon(MongoInterface):  # pylint: disable=too-many-instance
             firmware.comments = entry['comments']
         return firmware
 
-    def _convert_to_file_object(self, entry, analysis_filter=None):
+    def _convert_to_file_object(self, entry: dict, analysis_filter: List[str] = None) -> FileObject:
         file_object = FileObject()
         file_object.uid = entry['_id']
         file_object.size = entry['size']
-        file_object.set_name(entry['file_name'])
+        file_object.file_name = entry['file_name']
         file_object.virtual_file_path = entry['virtual_file_path']
         file_object.parents = entry['parents']
         file_object.processed_analysis = self.retrieve_analysis(entry['processed_analysis'], analysis_filter=analysis_filter)
@@ -169,8 +170,8 @@ class MongoInterfaceCommon(MongoInterface):  # pylint: disable=too-many-instance
                     sanitized_dict[key] = self._retrieve_binaries(sanitized_dict, key)
                 else:
                     sanitized_dict[key].pop('file_system_flag')
-            except Exception as err:
-                logging.debug('Could not retrieve information: {} {}'.format(type(err), err))
+            except (KeyError, IndexError, AttributeError, TypeError, pickle.PickleError) as error:
+                logging.debug('Could not retrieve information: {} {}'.format(type(error), error))
         return sanitized_dict
 
     def _extract_binaries(self, analysis_dict, key, uid):
@@ -178,11 +179,21 @@ class MongoInterfaceCommon(MongoInterface):  # pylint: disable=too-many-instance
         for analysis_key in analysis_dict[key].keys():
             if analysis_key != 'summary':
                 file_name = '{}_{}_{}'.format(get_safe_name(key), get_safe_name(analysis_key), uid)
-                self.sanitize_fs.put(pickle.dumps(analysis_dict[key][analysis_key]), filename=file_name)
+                self._store_in_sanitize_db(pickle.dumps(analysis_dict[key][analysis_key]), file_name)
                 tmp_dict[analysis_key] = file_name
             else:
                 tmp_dict[analysis_key] = analysis_dict[key][analysis_key]
         return tmp_dict
+
+    def _store_in_sanitize_db(self, content: bytes, file_name: str):
+        if self.sanitize_fs.exists({'filename': file_name}):
+            md5_hash = md5(content).hexdigest()
+            if self.sanitize_fs.exists({'md5': md5_hash}):
+                return  # there is already an up to date entry -> do nothing
+            for old_entry in self.sanitize_fs.find({'filename': file_name}):  # delete old entries first
+                logging.debug('deleting old sanitize db entry of {} with id {}'.format(file_name, old_entry._id))  # pylint: disable=protected-access
+                self.sanitize_fs.delete(old_entry._id)  # pylint: disable=protected-access
+        self.sanitize_fs.put(content, filename=file_name)
 
     def _retrieve_binaries(self, sanitized_dict, key):
         tmp_dict = {}
@@ -256,7 +267,7 @@ class MongoInterfaceCommon(MongoInterface):  # pylint: disable=too-many-instance
             if 'summary' in file_object.processed_analysis[selected_analysis].keys():
                 for item in file_object.processed_analysis[selected_analysis]['summary']:
                     summary[item] = [file_object.uid]
-        except Exception as err:
+        except (AttributeError, KeyError) as err:
             logging.warning('Could not get summary: {} {}'.format(type(err), err))
         return summary
 

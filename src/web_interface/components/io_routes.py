@@ -1,4 +1,5 @@
 import json
+from configparser import ConfigParser
 from tempfile import TemporaryDirectory
 from time import sleep
 
@@ -11,7 +12,6 @@ from helperFunctions.mongo_task_conversion import (
     check_for_errors, convert_analysis_task_to_fw_obj, create_analysis_task
 )
 from helperFunctions.pdf import build_pdf_report
-from helperFunctions.web_interface import get_radare_endpoint
 from intercom.front_end_binding import InterComFrontEndBinding
 from storage.db_interface_compare import CompareDbInterface, FactCompareException
 from storage.db_interface_frontend import FrontEndDbInterface
@@ -98,7 +98,6 @@ class IORoutes(ComponentBase):
 
     @roles_accepted(*PRIVILEGES['download'])
     def _show_radare(self, uid):
-        host, post_path = get_radare_endpoint(self._config), '/v1/retrieve'
         with ConnectTo(FrontEndDbInterface, self._config) as sc:
             object_exists = sc.existence_quick_check(uid)
         if not object_exists:
@@ -109,14 +108,22 @@ class IORoutes(ComponentBase):
             return render_template('error.html', message='timeout')
         binary, _ = result
         try:
-            response = requests.post('{}{}'.format(host, post_path), data=binary, verify=False)
+            host = self._get_radare_endpoint(self._config)
+            response = requests.post('{}/v1/retrieve'.format(host), data=binary, verify=False)
             if response.status_code != 200:
                 raise TimeoutError(response.text)
             target_link = '{}{}m/'.format(host, response.json()['endpoint'])
             sleep(1)
             return redirect(target_link)
-        except Exception as exception:
-            return render_template('error.html', message=str(exception))
+        except (requests.exceptions.ConnectionError, TimeoutError, KeyError) as error:
+            return render_template('error.html', message=str(error))
+
+    @staticmethod
+    def _get_radare_endpoint(config: ConfigParser) -> str:
+        radare2_host = config['ExpertSettings']['radare2_host']
+        if config.getboolean('ExpertSettings', 'nginx'):
+            return 'https://{}/radare'.format(radare2_host)
+        return 'http://{}:8000'.format(radare2_host)
 
     @roles_accepted(*PRIVILEGES['download'])
     def _download_pdf_report(self, uid):
@@ -130,7 +137,8 @@ class IORoutes(ComponentBase):
 
         try:
             with TemporaryDirectory(dir=get_temp_dir_path(self._config)) as folder:
-                binary, pdf_path = build_pdf_report(firmware, folder)
+                pdf_path = build_pdf_report(firmware, folder)
+                binary = pdf_path.read_bytes()
         except RuntimeError as error:
             return render_template('error.html', message=str(error))
 

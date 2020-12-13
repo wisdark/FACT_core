@@ -52,7 +52,7 @@ class MiscellaneousRoutes(ComponentBase):
             author = request.form['author']
             with ConnectTo(FrontendEditingDbInterface, config=self._config) as sc:
                 sc.add_comment_to_object(uid, comment, author, round(time()))
-            return redirect(url_for('analysis/<uid>', uid=uid))
+            return redirect(url_for('show_analysis', uid=uid))
         with ConnectTo(FrontEndDbInterface, config=self._config) as sc:
             if not sc.existence_quick_check(uid):
                 error = True
@@ -62,7 +62,7 @@ class MiscellaneousRoutes(ComponentBase):
     def _app_delete_comment(self, uid, timestamp):
         with ConnectTo(FrontendEditingDbInterface, config=self._config) as sc:
             sc.delete_comment(uid, timestamp)
-        return redirect(url_for('analysis/<uid>', uid=uid))
+        return redirect(url_for('show_analysis', uid=uid))
 
     @roles_accepted(*PRIVILEGES['delete'])
     def _app_delete_firmware(self, uid):
@@ -78,6 +78,7 @@ class MiscellaneousRoutes(ComponentBase):
     def _app_find_missing_analyses(self):
         template_data = {
             'missing_files': self._find_missing_files(),
+            'orphaned_files': self._find_orphaned_files(),
             'missing_analyses': self._find_missing_analyses(),
             'failed_analyses': self._find_failed_analyses(),
         }
@@ -87,6 +88,16 @@ class MiscellaneousRoutes(ComponentBase):
         start = time()
         with ConnectTo(FrontEndDbInterface, config=self._config) as db:
             parent_to_included = db.find_missing_files()
+        return {
+            'tuples': list(parent_to_included.items()),
+            'count': self._count_values(parent_to_included),
+            'duration': format_time(time() - start),
+        }
+
+    def _find_orphaned_files(self):
+        start = time()
+        with ConnectTo(FrontEndDbInterface, config=self._config) as db:
+            parent_to_included = db.find_orphaned_objects()
         return {
             'tuples': list(parent_to_included.items()),
             'count': self._count_values(parent_to_included),

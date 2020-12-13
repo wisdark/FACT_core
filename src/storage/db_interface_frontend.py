@@ -5,14 +5,15 @@ from copy import deepcopy
 from typing import Dict, List
 
 from helperFunctions.compare_sets import remove_duplicates_from_list
-from helperFunctions.database_structure import visualize_complete_tree
 from helperFunctions.dataConversion import get_value_of_first_key
-from helperFunctions.file_tree import FileTreeNode, VirtualPathFileTree
 from helperFunctions.merge_generators import merge_generators
 from helperFunctions.tag import TagColor
 from helperFunctions.virtual_file_path import get_top_of_virtual_path
 from objects.firmware import Firmware
 from storage.db_interface_common import MongoInterfaceCommon
+from web_interface.database_structure import visualize_complete_tree
+from web_interface.file_tree.file_tree import VirtualPathFileTree
+from web_interface.file_tree.file_tree_node import FileTreeNode
 
 
 class FrontEndDbInterface(MongoInterfaceCommon):
@@ -276,6 +277,30 @@ class FrontEndDbInterface(MongoInterfaceCommon):
                 parent_to_included.pop(parent_uid)
         return parent_to_included
 
+    def find_orphaned_objects(self) -> Dict[str, List[str]]:
+        ''' find File Objects whose parent firmware is missing '''
+        orphans_by_parent = {}
+        fo_parent_uids = list(self.file_objects.aggregate([
+            {'$unwind': '$parent_firmware_uids'},
+            {'$group': {'_id': 0, 'all_parent_uids': {'$addToSet': '$parent_firmware_uids'}}}
+        ], allowDiskUse=True))
+        if fo_parent_uids:
+            fo_parent_firmware = set(fo_parent_uids[0]['all_parent_uids'])
+            missing_uids = fo_parent_firmware.difference(self._get_all_firmware_uids())
+            if missing_uids:
+                for fo_entry in self.file_objects.find({'parent_firmware_uids': {'$in': list(missing_uids)}}):
+                    for uid in missing_uids:
+                        if uid in fo_entry['parent_firmware_uids']:
+                            orphans_by_parent.setdefault(uid, []).append(fo_entry['_id'])
+        return orphans_by_parent
+
+    def _get_all_firmware_uids(self) -> List[str]:
+        pipeline = [{'$group': {'_id': 0, 'firmware_uids': {'$push': '$_id'}}}]
+        try:
+            return list(self.firmwares.aggregate(pipeline, allowDiskUse=True))[0]['firmware_uids']
+        except IndexError:  # DB is empty
+            return []
+
     def find_missing_analyses(self):
         missing_analyses = {}
         query_result = self.firmwares.aggregate([
@@ -302,3 +327,12 @@ class FrontEndDbInterface(MongoInterfaceCommon):
             {'$group': {'_id': '$analysis.k', 'UIDs': {'$addToSet': '$_id'}}},
         ], allowDiskUse=True)
         return {entry['_id']: entry['UIDs'] for entry in query_result}
+
+    def get_data_for_dependency_graph(self, uid):
+        data = list(self.file_objects.find(
+            {'parents': uid},
+            {'_id': 1, 'processed_analysis.elf_analysis': 1, 'processed_analysis.file_type': 1, 'file_name': 1})
+        )
+        for entry in data:
+            self.retrieve_analysis(entry['processed_analysis'])
+        return data

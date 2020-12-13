@@ -43,7 +43,7 @@ def create_test_firmware(device_class='Router', device_name='test_router', vendo
     processed_analysis = {
         'dummy': {'summary': ['sum a', 'fw exclusive sum a'], 'content': 'abcd'},
         'unpacker': {'plugin_used': 'used_unpack_plugin'},
-        'file_type': {'mime': 'test_type', 'full': 'Not a PE file'}
+        'file_type': {'mime': 'test_type', 'full': 'Not a PE file', 'summary': ['a summary']}
     }
 
     fw.processed_analysis.update(processed_analysis)
@@ -251,7 +251,8 @@ class DatabaseMock:  # pylint: disable=too-many-public-methods
             'default_plugin': ('default plugin description', False, {'default': True}, *common_fields),
             'mandatory_plugin': ('mandatory plugin description', True, {'default': False}, *common_fields),
             'optional_plugin': ('optional plugin description', False, {'default': False}, *common_fields),
-            'file_type': ('file_type plugin', False, {'default': False}, *common_fields)
+            'file_type': ('file_type plugin', False, {'default': False}, *common_fields),
+            'unpacker': ('Additional information provided by the unpacker', True, False)
         }
 
     def get_binary_and_filename(self, uid):
@@ -369,6 +370,37 @@ class DatabaseMock:  # pylint: disable=too-many-public-methods
 
     def find_failed_analyses(self):
         return {'plugin': ['missing_child_uid']}
+
+    def find_orphaned_objects(self):
+        return {'root_fw_uid': ['missing_child_uid']}
+
+    def get_data_for_dependency_graph(self, uid):
+        if uid == 'testgraph':
+            file_object_one = {
+                'processed_analysis': {
+                    'file_type': {
+                        'mime': 'application/x-executable', 'full': 'test text'
+                    }
+                },
+                '_id': '1234567',
+                'file_name': 'file one'
+            }
+            file_object_two = {
+                'processed_analysis': {
+                    'file_type': {
+                        'mime': 'application/x-executable', 'full': 'test text'
+                    },
+                    'elf_analysis': {
+                        'Output': {
+                            'libraries': ['file one']
+                        }
+                    }
+                },
+                '_id': '7654321',
+                'file_name': 'file two'
+            }
+            return [file_object_one, file_object_two]
+        return []
 
 
 def fake_exit(self, *args):

@@ -1,0 +1,34 @@
+name: Deploy Docs to github pages
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-20.04
+
+    steps:
+    # check out repository
+    - uses: actions/checkout@v2
+
+    - name: Setup Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+
+    - name: install deps
+      run: |
+        python3 -m pip install --upgrade pip wheel setuptools
+        python3 -m pip install -r ./docsrc/doc_dependencies.txt
+
+    - name: Build Docs
+      run: |
+        make -C docsrc html
+        touch ./docsrc/_build/html/.nojekyll
+
+    - name: Deploy Docs to gh-pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docsrc/_build/html

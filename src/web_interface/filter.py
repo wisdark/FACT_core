@@ -1,3 +1,4 @@
+import json
 import logging
 import random
 import re
@@ -7,7 +8,7 @@ from datetime import timedelta
 from operator import itemgetter
 from string import ascii_letters
 from time import localtime, strftime, struct_time, time
-from typing import AnyStr, List, Optional
+from typing import AnyStr, List, Optional, Union
 
 from common_helper_files import human_readable_file_size
 from flask import render_template
@@ -15,7 +16,7 @@ from flask import render_template
 from helperFunctions.compare_sets import remove_duplicates_from_list
 from helperFunctions.dataConversion import make_unicode_string
 from helperFunctions.tag import TagColor
-from helperFunctions.web_interface import get_color_list
+from helperFunctions.web_interface import get_alternating_color_list, get_color_list
 from web_interface.security.authentication import user_has_privilege
 from web_interface.security.privileges import PRIVILEGES
 
@@ -228,28 +229,27 @@ def data_to_chart_limited(data, limit=10, color_list=None):
         'datasets': [{
             'data': value_list,
             'backgroundColor': color_list,
-            'borderColor': color_list,
-            'borderWidth': 1
+            'borderColor': '#fff',
+            'borderWidth': 2
         }]
     }
     return result
 
 
-def data_to_chart_with_value_percentage_pairs(data, limit=10, color_list=None):  # pylint: disable=invalid-name
+def data_to_chart_with_value_percentage_pairs(data, limit=10):  # pylint: disable=invalid-name
     try:
         label_list, value_list, percentage_list = [list(d) for d in zip(*data)]
     except ValueError:
         return None
     label_list, value_list = set_limit_for_data_to_chart(label_list, limit, value_list)
-    color_list = set_color_list_for_data_to_chart(color_list, value_list)
+    color_list = get_alternating_color_list(len(value_list), limit=limit)
     result = {
         'labels': label_list,
         'datasets': [{
             'data': value_list,
             'percentage': percentage_list,
             'backgroundColor': color_list,
-            'borderColor': color_list,
-            'borderWidth': 1
+            'borderWidth': 0
         }]
     }
     return result
@@ -401,3 +401,11 @@ def elapsed_time(start_time: float) -> int:
 
 def format_duration(duration: float) -> str:
     return str(timedelta(seconds=duration))
+
+
+def render_query_title(query_title: Union[None, str, dict]):
+    if query_title is None:
+        return None
+    if isinstance(query_title, dict):
+        return json.dumps(query_title, indent=2)
+    return query_title
