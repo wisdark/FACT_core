@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>helperFunctions.object_storage module &mdash; FACT  documentation</title>
+  <title>helperFunctions.fileSystem module &mdash; FACT  documentation</title>
   
 
   
@@ -42,8 +42,8 @@
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="helperFunctions.pdf module" href="helperFunctions.pdf.html" />
-    <link rel="prev" title="helperFunctions.mongo_task_conversion module" href="helperFunctions.mongo_task_conversion.html" /> 
+    <link rel="next" title="helperFunctions.install module" href="helperFunctions.install.html" />
+    <link rel="prev" title="helperFunctions.docker module" href="helperFunctions.docker.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -107,12 +107,12 @@
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.compare_sets.html">helperFunctions.compare_sets module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.database.html">helperFunctions.database module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.docker.html">helperFunctions.docker module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="helperFunctions.fileSystem.html">helperFunctions.fileSystem module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">helperFunctions.fileSystem module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.install.html">helperFunctions.install module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.logging.html">helperFunctions.logging module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.mongo_config_parser.html">helperFunctions.mongo_config_parser module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.mongo_task_conversion.html">helperFunctions.mongo_task_conversion module</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">helperFunctions.object_storage module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="helperFunctions.object_storage.html">helperFunctions.object_storage module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.pdf.html">helperFunctions.pdf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.process.html">helperFunctions.process module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.tag.html">helperFunctions.tag module</a></li>
@@ -173,13 +173,13 @@
         
           <li><a href="helperFunctions.html">helperFunctions</a> &raquo;</li>
         
-      <li>helperFunctions.object_storage module</li>
+      <li>helperFunctions.fileSystem module</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="../_sources/modules/helperFunctions.object_storage.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/modules/helperFunctions.fileSystem.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -192,70 +192,71 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-helperFunctions.object_storage">
-<span id="helperfunctions-object-storage-module"></span><h1>helperFunctions.object_storage module<a class="headerlink" href="#module-helperFunctions.object_storage" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-helperFunctions.fileSystem">
+<span id="helperfunctions-filesystem-module"></span><h1>helperFunctions.fileSystem module<a class="headerlink" href="#module-helperFunctions.fileSystem" title="Permalink to this headline">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="helperFunctions.object_storage.update_analysis_tags">
-<span class="sig-prename descclassname"><span class="pre">helperFunctions.object_storage.</span></span><span class="sig-name descname"><span class="pre">update_analysis_tags</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">old_object</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#helperFunctions.object_storage.update_analysis_tags" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get updated tags of a file object by adding new tags and overwriting existing ones if outdated.
-Not outdated tags are kept.</p>
+<dt class="sig sig-object py" id="helperFunctions.fileSystem.file_is_empty">
+<span class="sig-prename descclassname"><span class="pre">helperFunctions.fileSystem.</span></span><span class="sig-name descname"><span class="pre">file_is_empty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#helperFunctions.fileSystem.file_is_empty" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks if a file is empty (i.e. has a size of 0 bytes).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>new_object</strong> (<a class="reference internal" href="objects.file.html#objects.file.FileObject" title="objects.file.FileObject"><em>objects.file.FileObject</em></a>) – Current file object with up to date tags</p></li>
-<li><p><strong>old_object</strong> (<em>dict</em>) – Current database state of same object with existing tags</p></li>
-</ul>
+<dd class="field-odd"><p><strong>file_path</strong> (<em>pathlib.Path</em>) – The file to check.</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>a dict containing new tags and old - not outdated - tags</p>
+<dd class="field-even"><p>True if the file is empty and False otherwise.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>dict</p>
+<dd class="field-odd"><p>bool</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="helperFunctions.object_storage.update_included_files">
-<span class="sig-prename descclassname"><span class="pre">helperFunctions.object_storage.</span></span><span class="sig-name descname"><span class="pre">update_included_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">old_object</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#helperFunctions.object_storage.update_included_files" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get updated list of included files of an object.
-This is done by joining newfound included files with already found included files.</p>
+<dt class="sig sig-object py" id="helperFunctions.fileSystem.get_relative_object_path">
+<span class="sig-prename descclassname"><span class="pre">helperFunctions.fileSystem.</span></span><span class="sig-name descname"><span class="pre">get_relative_object_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset_path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#helperFunctions.fileSystem.get_relative_object_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>FACT extraction unpacks files into a temporary directory. These files have to be offset to get the path relative
+to the firmware filesystem root. Additionally, some filesystem extractors create an intermediate directory
+‘fact_extracted’ that has to be removed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>new_object</strong> (<a class="reference internal" href="objects.file.html#objects.file.FileObject" title="objects.file.FileObject"><em>objects.file.FileObject</em></a>) – Current file object with newly discovered included files</p></li>
-<li><p><strong>old_object</strong> (<em>dict</em>) – Current database state of same object with existing included files</p></li>
+<li><p><strong>path</strong> (<em>pathlib.Path</em>) – The absolute path of the file related to the firmware or file object.</p></li>
+<li><p><strong>offset_path</strong> (<em>pathlib.Path</em>) – The path of the unpacking directory (that needs to be removed from the file’s path).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>a list containing all included files</p>
+<dd class="field-even"><p>The relative path.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>list</p>
+<dd class="field-odd"><p>str</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="helperFunctions.object_storage.update_virtual_file_path">
-<span class="sig-prename descclassname"><span class="pre">helperFunctions.object_storage.</span></span><span class="sig-name descname"><span class="pre">update_virtual_file_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">old_object</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#helperFunctions.object_storage.update_virtual_file_path" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get updated dict of virtual file paths.
-A file object can exist only once, multiple times inside the same firmware (e.g. sym links) or
-even in multiple different firmware images (e.g. common files across patch levels).
-Thus updating the virtual file paths dict requires some logic.
-This function returns the combined dict across newfound virtual paths and existing ones.</p>
+<dt class="sig sig-object py" id="helperFunctions.fileSystem.get_src_dir">
+<span class="sig-prename descclassname"><span class="pre">helperFunctions.fileSystem.</span></span><span class="sig-name descname"><span class="pre">get_src_dir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#helperFunctions.fileSystem.get_src_dir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieves the absolute path of the src directory.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>new_object</strong> (<a class="reference internal" href="objects.file.html#objects.file.FileObject" title="objects.file.FileObject"><em>objects.file.FileObject</em></a>) – Current file object with newly discovered virtual paths</p></li>
-<li><p><strong>old_object</strong> (<em>dict</em>) – Current database state of same object with existing virtual paths</p></li>
-</ul>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The (absolute) path of the src directory.</p>
 </dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>a dict containing all virtual paths</p>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>str</p>
 </dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>dict</p>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="helperFunctions.fileSystem.get_template_dir">
+<span class="sig-prename descclassname"><span class="pre">helperFunctions.fileSystem.</span></span><span class="sig-name descname"><span class="pre">get_template_dir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#helperFunctions.fileSystem.get_template_dir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieves the absolute path of the template directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The (absolute) path of the template directory.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>pathlib.Path</p>
 </dd>
 </dl>
 </dd></dl>
@@ -268,8 +269,8 @@ This function returns the combined dict across newfound virtual paths and existi
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="helperFunctions.pdf.html" class="btn btn-neutral float-right" title="helperFunctions.pdf module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="helperFunctions.mongo_task_conversion.html" class="btn btn-neutral float-left" title="helperFunctions.mongo_task_conversion module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="helperFunctions.install.html" class="btn btn-neutral float-right" title="helperFunctions.install module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="helperFunctions.docker.html" class="btn btn-neutral float-left" title="helperFunctions.docker module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>
