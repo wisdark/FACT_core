@@ -14,9 +14,9 @@ from common_helper_files import human_readable_file_size
 from flask import render_template
 
 from helperFunctions.compare_sets import remove_duplicates_from_list
-from helperFunctions.dataConversion import make_unicode_string
+from helperFunctions.data_conversion import make_unicode_string
 from helperFunctions.tag import TagColor
-from helperFunctions.web_interface import get_alternating_color_list, get_color_list
+from helperFunctions.web_interface import get_alternating_color_list
 from web_interface.security.authentication import user_has_privilege
 from web_interface.security.privileges import PRIVILEGES
 
@@ -217,28 +217,9 @@ def sort_comments(comment_list):
     return comment_list
 
 
-def data_to_chart_limited(data, limit=10, color_list=None):
-    try:
-        label_list, value_list = [list(d) for d in zip(*data)]
-    except ValueError:
-        return None
-    label_list, value_list = set_limit_for_data_to_chart(label_list, limit, value_list)
-    color_list = set_color_list_for_data_to_chart(color_list, value_list)
-    result = {
-        'labels': label_list,
-        'datasets': [{
-            'data': value_list,
-            'backgroundColor': color_list,
-            'borderColor': '#fff',
-            'borderWidth': 2
-        }]
-    }
-    return result
-
-
 def data_to_chart_with_value_percentage_pairs(data, limit=10):  # pylint: disable=invalid-name
     try:
-        label_list, value_list, percentage_list = [list(d) for d in zip(*data)]
+        label_list, value_list, percentage_list, *links = [list(d) for d in zip(*data)]
     except ValueError:
         return None
     label_list, value_list = set_limit_for_data_to_chart(label_list, limit, value_list)
@@ -249,16 +230,11 @@ def data_to_chart_with_value_percentage_pairs(data, limit=10):  # pylint: disabl
             'data': value_list,
             'percentage': percentage_list,
             'backgroundColor': color_list,
-            'borderWidth': 0
+            'borderWidth': 0,
+            'links': links[0] if links else 'null'
         }]
     }
     return result
-
-
-def set_color_list_for_data_to_chart(color_list, value_list):
-    if not color_list:
-        color_list = get_color_list(len(value_list))
-    return color_list
 
 
 def set_limit_for_data_to_chart(label_list, limit, value_list):
@@ -269,11 +245,6 @@ def set_limit_for_data_to_chart(label_list, limit, value_list):
         value_list = value_list[:limit]
         value_list.append(rest_sum)
     return label_list, value_list
-
-
-def data_to_chart(data):
-    color_list = get_color_list(1) * len(data)
-    return data_to_chart_limited(data, limit=0, color_list=color_list)
 
 
 def get_canvas_height(dataset, maximum=11, bar_height=5):

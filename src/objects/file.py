@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 
 from common_helper_files import get_binary_from_file
 
-from helperFunctions.dataConversion import get_value_of_first_key, make_bytes, make_unicode_string
+from helperFunctions.data_conversion import get_value_of_first_key, make_bytes, make_unicode_string
 from helperFunctions.hash import get_sha256
 from helperFunctions.uid import create_uid
 from helperFunctions.virtual_file_path import get_base_of_virtual_path, get_top_of_virtual_path
@@ -224,6 +224,18 @@ class FileObject:  # pylint: disable=too-many-instance-attributes
         if req_root_uid in file_paths:
             return file_paths[req_root_uid]
         return get_value_of_first_key(file_paths)  # fallback
+
+    def get_virtual_paths_for_all_uids(self) -> List[str]:
+        '''
+        Get all virtual file paths (VFPs) of the file in all firmware containers.
+
+        :return: List of virtual paths.
+        '''
+        return [
+            vfp
+            for vfp_list in self.get_virtual_file_paths().values()
+            for vfp in vfp_list
+        ]
 
     def get_virtual_file_paths(self) -> Dict[str, list]:
         '''
