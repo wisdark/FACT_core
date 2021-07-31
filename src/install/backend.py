@@ -1,5 +1,6 @@
 import logging
 import os
+import stat
 from contextlib import suppress
 from pathlib import Path
 
@@ -11,8 +12,10 @@ from helperFunctions.install import (
     load_main_config, pip3_install_packages
 )
 
+BIN_DIR = Path(__file__).parent.parent / 'bin'
 
-def main(distribution):
+
+def main(skip_docker, distribution):
 
     # dependencies
     if distribution == 'fedora':
@@ -25,16 +28,16 @@ def main(distribution):
     # install yara
     _install_yara(distribution)
 
-    # build extraction docker container
-    logging.info('Building fact extraction container')
-
-    output, return_code = execute_shell_command_get_return_code('docker pull fkiecad/fact_extractor')
-    if return_code != 0:
-        raise InstallationError(f'Failed to pull extraction container:\n{output}')
+    # install checksec.sh
+    _install_checksec(distribution)
 
     # installing common code modules
     pip3_install_packages('git+https://github.com/fkie-cad/common_helper_yara.git')
     pip3_install_packages('git+https://github.com/mass-project/common_analysis_base.git')
+
+    if not skip_docker:
+        _install_docker_images()
+        _install_plugin_docker_images()
 
     # install plug-in dependencies
     _install_plugins(distribution)
@@ -57,6 +60,28 @@ def main(distribution):
         Path('start_fact_backend').symlink_to('src/start_fact_backend.py')
 
     return 0
+
+
+def _install_docker_images():
+    # pull extraction docker container
+    logging.info('Pulling fact extraction container')
+
+    output, return_code = execute_shell_command_get_return_code('docker pull fkiecad/fact_extractor')
+    if return_code != 0:
+        raise InstallationError(f'Failed to pull extraction container:\n{output}')
+
+
+def _install_plugin_docker_images():
+    logging.info('Installing plugin docker dependecies')
+    find_output, return_code = execute_shell_command_get_return_code('find ../plugins -iname "install_docker.sh"')
+    if return_code != 0:
+        raise InstallationError('Error retrieving plugin docker installation scripts')
+    for install_script in find_output.splitlines(keepends=False):
+        logging.info(f'Running {install_script}')
+        shell_output, return_code = execute_shell_command_get_return_code(install_script)
+        if return_code != 0:
+            raise InstallationError(
+                f'Error in installation of {Path(install_script).parent.name} plugin docker images docker images\n{shell_output}')
 
 
 def _edit_environment():
@@ -117,3 +142,21 @@ def _install_yara(distribution):  # pylint: disable=too-complex
             output, return_code = execute_shell_command_get_return_code(command)
             if return_code != 0:
                 raise InstallationError(f'Error in yara installation.\n{output}')
+
+
+def _install_checksec(distribution):
+    checksec_path = BIN_DIR / 'checksec'
+    if checksec_path.is_file():
+        logging.info('Skipping checksec.sh installation (already installed)')
+        return
+
+    # dependencies
+    install_function = apt_install_packages if distribution != 'fedora' else dnf_install_packages
+    install_function('binutils', 'openssl', 'file')
+
+    logging.info('Installing checksec.sh')
+    checksec_url = "https://raw.githubusercontent.com/slimm609/checksec.sh/master/checksec"
+    output, return_code = execute_shell_command_get_return_code(f'wget -P {BIN_DIR} {checksec_url}')
+    if return_code != 0:
+        raise InstallationError(f'Error during installation of checksec.sh\n{output}')
+    checksec_path.chmod(checksec_path.stat().st_mode | stat.S_IEXEC)  # chmod +x
