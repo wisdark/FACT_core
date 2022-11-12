@@ -48,6 +48,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../main.html#latest-news-and-contact">Latest News and Contact</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../main.html#authors-and-acknowledgment">Authors and Acknowledgment</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../main.html#source-code">Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Upgrading FACT from 3 to 4</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Modules:</span></p>
 <ul class="current">
@@ -177,17 +178,6 @@ FACT provides a preset of frequently used values: <cite>complete</cite>, <cite>k
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="objects.firmware.Firmware.remove_tag">
-<span class="sig-name descname"><span class="pre">remove_tag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tag</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#objects.firmware.Firmware.remove_tag" title="Permalink to this definition"></a></dt>
-<dd><p>Remove a user-defined tag.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>tag</strong> (<em>str</em>) – Tag identifier</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="objects.firmware.Firmware.set_binary">
 <span class="sig-name descname"><span class="pre">set_binary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">binary</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#objects.firmware.Firmware.set_binary" title="Permalink to this definition"></a></dt>
 <dd><p>See <a class="reference internal" href="objects.file.html#objects.file.FileObject.set_binary" title="objects.file.FileObject.set_binary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">objects.file.FileObject.set_binary()</span></code></a>.</p>
@@ -211,14 +201,11 @@ FACT provides a preset of frequently used values: <cite>complete</cite>, <cite>k
 
 <dl class="py method">
 <dt class="sig sig-object py" id="objects.firmware.Firmware.set_tag">
-<span class="sig-name descname"><span class="pre">set_tag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag_color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'secondary'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#objects.firmware.Firmware.set_tag" title="Permalink to this definition"></a></dt>
-<dd><p>Set a user-defined tag with color.</p>
+<span class="sig-name descname"><span class="pre">set_tag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tag</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#objects.firmware.Firmware.set_tag" title="Permalink to this definition"></a></dt>
+<dd><p>Set a user-defined tag in the color gray.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>tag</strong> (<em>str</em>) – Tag identifier</p></li>
-<li><p><strong>tag_color</strong> (str from <a class="reference internal" href="helperFunctions.tag.html#helperFunctions.tag.TagColor" title="helperFunctions.tag.TagColor"><code class="xref py py-class docutils literal notranslate"><span class="pre">TagColor</span></code></a>) – The tag’s color, defaults to <a class="reference internal" href="helperFunctions.tag.html#helperFunctions.tag.TagColor.GRAY" title="helperFunctions.tag.TagColor.GRAY"><code class="xref py py-class docutils literal notranslate"><span class="pre">GRAY</span></code></a></p></li>
-</ul>
+<dd class="field-odd"><p><strong>tag</strong> (<em>str</em>) – Tag identifier</p>
 </dd>
 </dl>
 </dd></dl>
@@ -261,7 +248,7 @@ Can be freely defined during upload.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2020, Fraunhofer FKIE.</p>
+    <p>&#169; Copyright 2020-2022  Fraunhofer FKIE.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
