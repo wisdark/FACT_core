@@ -9,21 +9,40 @@ from flask_security import hash_password
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import WordCompleter
 
-from config.ascii import FACT_ASCII_ART
 from helperFunctions.config import get_config_dir, load_config
 from helperFunctions.web_interface import password_is_legal
 from version import __VERSION__
-from web_interface.frontend_main import WebFrontEnd
+from web_interface.app import create_app
+from web_interface.security.authentication import add_flask_security_to_app
 from web_interface.security.privileges import ROLES
 from web_interface.security.terminal_validators import ActionValidator, ActionValidatorReverse
+
+FACT_ASCII_ART = '''
+                                                      ***********.
+                                                   *******************.
+   *****************  ***********************   ********'       .********   *********************.
+  *****************  ***********************  .******                ***      *********************
+ *****              *****             *****  *****'                                   '****
+.****              *****             *****  *****                                      *****
+****'              ****              ****  .****                                        ****
+****              *****             *****  ****                                         *****
+**********        ***********************  ****                                          ****
+**********        ***********************  ****                                          ****
+****              *****             *****  ****.                                        *****
+****.              ****              ****  '****                                        ****
+ ****              *****             *****  *****                                      *****
+ *****              *****             *****  ******                                   *****
+  *****              *****             *****  '******               .***             *****
+   ******             *****             *****   *********       .********           *****
+                                                   *******************
+                                                      ***********'
+'''
 
 
 def setup_argparse():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', '--version', action='version',
-                        version=f'FACT User Management (FACTUM) {__VERSION__}')
-    parser.add_argument('-C', '--config_file', help='set path to config File',
-                        default=f'{get_config_dir()}/main.cfg')
+    parser.add_argument('-v', '--version', action='version', version=f'FACT User Management (FACTUM) {__VERSION__}')
+    parser.add_argument('-C', '--config_file', help='set path to config File', default=f'{get_config_dir()}/main.cfg')
     return parser.parse_args()
 
 
@@ -67,7 +86,7 @@ class Actions:
         user = self.session.prompt(
             'username: ',
             validator=ActionValidatorReverse(user_list, message='user must not exist and not be empty'),
-            completer=None
+            completer=None,
         )
         while True:
             password = getpass.getpass('password: ')
@@ -85,7 +104,7 @@ class Actions:
         user = self.session.prompt(
             'username: ',
             validator=ActionValidator(user_list, message='user must exist before deleting'),
-            completer=action_completer
+            completer=action_completer,
         )
         with self.app.app_context():
             self.store.delete_user(user=self.store.find_user(email=user))
@@ -94,8 +113,7 @@ class Actions:
     def create_role(self):
         role_list = self._get_role_list()
         role = self.session.prompt(
-            'role name: ',
-            validator=ActionValidatorReverse(role_list, message='role must not exist and not be empty')
+            'role name: ', validator=ActionValidatorReverse(role_list, message='role must not exist and not be empty')
         )
         with self.app.app_context():
             if not self._role_exists(role):
@@ -110,12 +128,12 @@ class Actions:
         user = self.session.prompt(
             'username: ',
             validator=ActionValidator(user_list, message='user must exists before adding it to a role'),
-            completer=user_completer
+            completer=user_completer,
         )
         role = self.session.prompt(
             'rolename: ',
             validator=ActionValidator(role_list, message='role must exists before user can be added'),
-            completer=role_completer
+            completer=role_completer,
         )
         with self.app.app_context():
             self.store.add_role_to_user(user=self.store.find_user(email=user), role=role)
@@ -125,9 +143,7 @@ class Actions:
         user_list = self._get_user_list()
         user_completer = WordCompleter(user_list)
         user = self.session.prompt(
-            'username: ',
-            validator=ActionValidator(user_list, message='user must exist'),
-            completer=user_completer
+            'username: ', validator=ActionValidator(user_list, message='user must exist'), completer=user_completer
         )
         with self.app.app_context():
             user = self.store.find_user(email=user)
@@ -135,7 +151,7 @@ class Actions:
         role = self.session.prompt(
             'rolename: ',
             validator=ActionValidator(user_roles, message='user must have that role before it can be removed'),
-            completer=WordCompleter(user_roles)
+            completer=WordCompleter(user_roles),
         )
         with self.app.app_context():
             self.store.remove_role_from_user(user=self.store.find_user(email=user.email), role=role)
@@ -147,7 +163,7 @@ class Actions:
         user = self.session.prompt(
             'username: ',
             validator=ActionValidator(user_list, message='user must exist to retrieve apikey.'),
-            completer=action_completer
+            completer=action_completer,
         )
         with self.app.app_context():
             user = self.store.find_user(email=user)
@@ -178,7 +194,7 @@ def initialise_roles(app, interface, db):
                 db.session.commit()
 
 
-def prompt_loop(app, store, db, session):
+def prompt_loop(app, store, db, session):  # pylint: disable=too-complex
     print(FACT_ASCII_ART)
     print('\nWelcome to the FACT User Management (FACTUM)\n')
     initialise_roles(app, store, db)
@@ -190,7 +206,7 @@ def prompt_loop(app, store, db, session):
             action = actions.session.prompt(
                 'Please choose an action to perform: ',
                 validator=ActionValidator(LEGAL_ACTIONS),
-                completer=action_completer
+                completer=action_completer,
             )
         except (EOFError, KeyboardInterrupt):
             break
@@ -216,12 +232,11 @@ def start_user_management(app, store, db, session):
 
 def main():
     args = setup_argparse()
+    config = load_config(Path(args.config_file).name)
+    app = create_app(config)
+    user_db, user_datastore = add_flask_security_to_app(app)
 
-    file_name = Path(args.config_file).name
-    config = load_config(file_name)
-    frontend = WebFrontEnd(config)
-
-    start_user_management(frontend.app, frontend.user_datastore, frontend.user_db, PromptSession())
+    start_user_management(app, user_datastore, user_db, PromptSession())
 
     return 0
 

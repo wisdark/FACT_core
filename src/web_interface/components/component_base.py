@@ -1,13 +1,17 @@
 from types import MethodType
 from typing import Any, Callable, NamedTuple, Tuple
 
+from web_interface.frontend_database import FrontendDatabase
+
 ROUTES_ATTRIBUTE = 'view_routes'
 
 GET = 'GET'
 POST = 'POST'
 
 
-Route = NamedTuple('Route', [('rule', str), ('methods', Tuple[str, ...])])
+class Route(NamedTuple):
+    rule: str
+    methods: Tuple[str, ...]
 
 
 class AppRoute:
@@ -24,6 +28,7 @@ class AppRoute:
     :param rule: The endpoint route (e.g. "/about")
     :param methods: supported HTML Methods (e.g. ``'GET', 'POST'``)
     '''
+
     def __init__(self, rule: str, *methods: str):
         self.route = Route(rule, methods)
 
@@ -35,10 +40,12 @@ class AppRoute:
 
 
 class ComponentBase:
-    def __init__(self, app, config, api=None):
+    def __init__(self, app, config, db: FrontendDatabase, intercom, api=None):
         self._app = app
         self._config = config
         self._api = api
+        self.db = db
+        self.intercom = intercom
 
         self._init_component()
 

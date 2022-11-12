@@ -9,23 +9,21 @@ from time import time
 import distro
 import psutil
 
-from storage.db_interface_statistic import StatisticDbUpdater
+from storage.db_interface_stats import StatsUpdateDbInterface
 from version import __VERSION__
 
 
 class WorkLoadStatistic:
-
     def __init__(self, config, component):
         self.config = config
         self.component = component
-        self.db = StatisticDbUpdater(config=self.config)
+        self.db = StatsUpdateDbInterface(config=self.config)
         self.platform_information = self._get_platform_information()
-        logging.debug('{}: Online'.format(self.component))
+        logging.debug(f'{self.component}: Online')
 
     def shutdown(self):
-        logging.debug('{}: shutting down -> set offline message'.format(self.component))
+        logging.debug(f'{self.component}: shutting down -> set offline message')
         self.db.update_statistic(self.component, {'status': 'offline', 'last_update': time()})
-        self.db.shutdown()
 
     def update(self, unpacking_workload=None, analysis_workload=None, compare_workload=None):
         stats = {
@@ -46,7 +44,7 @@ class WorkLoadStatistic:
     def _get_system_information(self):
         memory_usage = psutil.virtual_memory()
         try:
-            disk_usage = psutil.disk_usage(self.config['data_storage']['firmware_file_storage_directory'])
+            disk_usage = psutil.disk_usage(self.config['data-storage']['firmware-file-storage-directory'])
         except Exception:
             disk_usage = psutil.disk_usage('/')
         try:
@@ -64,17 +62,13 @@ class WorkLoadStatistic:
             'memory_percent': memory_usage.percent,
             'disk_total': disk_usage.total,
             'disk_used': disk_usage.used,
-            'disk_percent': disk_usage.percent
+            'disk_percent': disk_usage.percent,
         }
         return result
 
     @staticmethod
     def _get_platform_information():
-        operating_system = ' '.join(distro.linux_distribution()[0:2])
+        operating_system = f'{distro.id()} {distro.version()}'
         python_version = '.'.join(str(x) for x in sys.version_info[0:3])
         fact_version = __VERSION__
-        return {
-            'os': operating_system,
-            'python': python_version,
-            'fact_version': fact_version
-        }
+        return {'os': operating_system, 'python': python_version, 'fact_version': fact_version}

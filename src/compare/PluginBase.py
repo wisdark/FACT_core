@@ -10,10 +10,12 @@ class CompareBasePlugin(BasePlugin):
     This is the compare plug-in base class. All compare plug-ins should be derived from this class.
     '''
 
-    def __init__(self, plugin_administrator, config=None, db_interface=None, plugin_path=None):
-        super().__init__(plugin_administrator, config=config, plugin_path=plugin_path)
+    # must be set by the plugin:
+    FILE = None
+
+    def __init__(self, config=None, db_interface=None, view_updater=None):
+        super().__init__(config=config, plugin_path=self.FILE, view_updater=view_updater)
         self.database = db_interface
-        self.register_plugin()
 
     @abstractmethod
     def compare_function(self, fo_list):
@@ -30,14 +32,9 @@ class CompareBasePlugin(BasePlugin):
         '''
         missing_deps = _get_unmatched_dependencies(fo_list, self.DEPENDENCIES)
         if len(missing_deps) > 0:
-            return {'Compare Skipped': {'all': 'Required analysis not present: {}'.format(', '.join(missing_deps))}}
+            return {'Compare Skipped': {'all': f"Required analysis not present: {', '.join(missing_deps)}"}}
         return self.compare_function(fo_list)
 
 
 def _get_unmatched_dependencies(fo_list: List[FileObject], dependency_list: List[str]) -> Set[str]:
-    return {
-        dependency
-        for dependency in dependency_list
-        for fo in fo_list
-        if dependency not in fo.processed_analysis
-    }
+    return {dependency for dependency in dependency_list for fo in fo_list if dependency not in fo.processed_analysis}

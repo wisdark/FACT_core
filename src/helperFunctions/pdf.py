@@ -57,18 +57,14 @@ def _initialize_subfolder(folder: Path, firmware: Firmware) -> None:
     for subpath in ['data', 'pdf']:
         (folder / subpath).mkdir(parents=True, exist_ok=True)
 
-    (folder / 'data' / 'meta.json').write_text(
-        json.dumps(create_meta_dict(firmware), cls=ReportEncoder)
-    )
-    (folder / 'data' / 'analysis.json').write_text(
-        json.dumps(firmware.processed_analysis, cls=ReportEncoder)
-    )
+    (folder / 'data' / 'meta.json').write_text(json.dumps(create_meta_dict(firmware), cls=ReportEncoder))
+    (folder / 'data' / 'analysis.json').write_text(json.dumps(firmware.processed_analysis, cls=ReportEncoder))
 
 
 def _find_pdf(folder: Path) -> Path:
     pdf_path = None
     for file_path in (folder / 'pdf').rglob('*.pdf'):
         if pdf_path:
-            logging.warning('Indistinct pdf name. Found: {}'.format(file_path.name))
+            logging.warning(f'Indistinct pdf name. Found: {file_path.name}')
         pdf_path = file_path
     return pdf_path

@@ -13,26 +13,36 @@ except ImportError:
     from key_parser import read_asn1_key, read_pkcs_cert, read_ssl_cert
 
 
-Match = NamedTuple('Match', [('offset', int), ('label', str), ('matched_string', bytes)])
+class Match(NamedTuple):
+    offset: int
+    label: str
+    matched_string: str
 
 
 class AnalysisPlugin(YaraBasePlugin):
     '''
     Searches for known Crypto material (e.g., public and private keys)
     '''
+
     NAME = 'crypto_material'
     DESCRIPTION = 'detects crypto material like SSH keys and SSL certificates'
-    STARTEND = ['PgpPublicKeyBlock', 'PgpPrivateKeyBlock', 'PgpPublicKeyBlock_GnuPG', 'genericPublicKey',
-                'SshRsaPrivateKeyBlock', 'SshEncryptedRsaPrivateKeyBlock', 'SSLPrivateKey']
-    STARTONLY = ['SshRsaPublicKeyBlock']
+    VERSION = '0.5.2'
     MIME_BLACKLIST = ['filesystem']
+    FILE = __file__
+
+    STARTEND = [
+        'PgpPublicKeyBlock',
+        'PgpPrivateKeyBlock',
+        'PgpPublicKeyBlock_GnuPG',
+        'genericPublicKey',
+        'SshRsaPrivateKeyBlock',
+        'SshEncryptedRsaPrivateKeyBlock',
+        'SSLPrivateKey',
+    ]
+    STARTONLY = ['SshRsaPublicKeyBlock']
     PKCS8 = 'Pkcs8PrivateKey'
     PKCS12 = 'Pkcs12Certificate'
     SSLCERT = 'SSLCertificate'
-    VERSION = '0.5.2'
-
-    def __init__(self, plugin_administrator, config=None, recursive=True):
-        super().__init__(plugin_administrator, config=config, recursive=recursive, plugin_path=__file__)
 
     def process_object(self, file_object):
         file_object = super().process_object(file_object)
@@ -68,7 +78,7 @@ class AnalysisPlugin(YaraBasePlugin):
             return self.get_pkcs12_cert
         if match == self.SSLCERT:
             return self.get_ssl_cert
-        logging.warning('Unknown crypto rule match: {}'.format(match))
+        logging.warning(f'Unknown crypto rule match: {match}')
         return None
 
     def extract_labeled_keys(self, matches: List[Match], binary, min_key_len=128) -> List[str]:
@@ -80,11 +90,7 @@ class AnalysisPlugin(YaraBasePlugin):
 
     @staticmethod
     def extract_start_only_key(matches: List[Match], **_) -> List[str]:
-        return [
-            match.matched_string.decode(encoding='utf_8', errors='replace')
-            for match in matches
-            if match.label == '$start_string'
-        ]
+        return [match.matched_string for match in matches if match.label == '$start_string']
 
     @staticmethod
     def get_pkcs8_key(matches: List[Match], binary=None) -> List[str]:
@@ -132,7 +138,7 @@ class AnalysisPlugin(YaraBasePlugin):
                 tag_name='private_key_inside',
                 value='Private Key Found',
                 color=TagColor.ORANGE,
-                propagate=True
+                propagate=True,
             )
 
 
@@ -142,15 +148,20 @@ def _is_consecutive_key_block(matches: List[Match], index: int) -> bool:
 
 def _is_consecutive_pgp_block(matches: List[Match], index: int) -> bool:
     return (
-        matches[index].label == '$start_string' and matches[index + 1].label == '$gnupg_version_string'
-        and len(matches) > index + 2 and matches[index + 2].label == '$end_string'
+        matches[index].label == '$start_string'
+        and matches[index + 1].label == '$gnupg_version_string'
+        and len(matches) > index + 2
+        and matches[index + 2].label == '$end_string'
     )
 
 
 def _is_consecutive_encrypted_key(matches: List[Match], index: int) -> bool:
     return (
-        len(matches) > index + 3 and matches[index].label == '$start_string' and matches[index + 1].label == '$proc_type'
-        and matches[index + 2].label == '$dek_info' and matches[index + 3].label == '$end_string'
+        len(matches) > index + 3
+        and matches[index].label == '$start_string'
+        and matches[index + 1].label == '$proc_type'
+        and matches[index + 2].label == '$dek_info'
+        and matches[index + 3].label == '$end_string'
     )
 
 

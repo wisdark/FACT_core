@@ -1,8 +1,17 @@
 from re import finditer, match
 from typing import Dict, List, NamedTuple, Tuple
 
-CveEntry = NamedTuple('CveEntry', [('cve_id', str), ('impact', Dict[str, str]), ('cpe_list', List[Tuple[str, str, str, str, str]])])
-CveSummaryEntry = NamedTuple('CveSummaryEntry', [('cve_id', str), ('summary', str), ('impact', dict)])
+
+class CveEntry(NamedTuple):
+    cve_id: str
+    impact: Dict[str, str]
+    cpe_list: List[Tuple[str, str, str, str, str]]
+
+
+class CveSummaryEntry(NamedTuple):
+    cve_id: str
+    summary: str
+    impact: dict
 
 
 def escape_special_characters(attribute: str) -> str:
@@ -12,7 +21,7 @@ def escape_special_characters(attribute: str) -> str:
         group = 2 if characters.span(1)[0] == -1 else 1
         start = characters.span(group)[0] + index_shift
         if start:
-            attribute = '{}{}{}'.format(attribute[:start], '\\', attribute[start:])
+            attribute = f'{attribute[:start]}\\{attribute[start:]}'
             index_shift += 1
 
     return attribute
@@ -31,7 +40,7 @@ def replace_characters_and_wildcards(attributes: List[str]) -> List[str]:
 
 
 def get_field_string(fields: List[Tuple[str, str]]) -> str:
-    return ', '.join(['{} {} NOT NULL'.format(name, type_) for name, type_ in fields])
+    return ', '.join([f'{name} {type_} NOT NULL' for name, type_ in fields])
 
 
 def get_field_names(fields: List[Tuple[str, str]]) -> str:

@@ -1,5 +1,6 @@
 import logging
 from copy import copy
+from time import time
 from typing import List, Set, Union
 
 from helperFunctions.merge_generators import shuffled
@@ -27,7 +28,8 @@ class AnalysisTaskScheduler:
             next_plugins = self._get_plugins_with_met_dependencies(remaining_plugins, scheduled_plugins)
             if not next_plugins:
                 logging.error(
-                    f'Error: Could not schedule plugins because dependencies cannot be fulfilled: {remaining_plugins}')
+                    f'Error: Could not schedule plugins because dependencies cannot be fulfilled: {remaining_plugins}'
+                )
                 break
             scheduled_plugins[:0] = shuffled(next_plugins)
             remaining_plugins.difference_update(next_plugins)
@@ -38,7 +40,9 @@ class AnalysisTaskScheduler:
             scheduled_plugins.append('file_type')
         return scheduled_plugins
 
-    def _get_plugins_with_met_dependencies(self, remaining_plugins: Set[str], scheduled_plugins: List[str]) -> List[str]:
+    def _get_plugins_with_met_dependencies(
+        self, remaining_plugins: Set[str], scheduled_plugins: List[str]
+    ) -> List[str]:
         met_dependencies = scheduled_plugins
         return [
             plugin
@@ -57,17 +61,26 @@ class AnalysisTaskScheduler:
 
     def get_cumulative_remaining_dependencies(self, scheduled_analyses: Set[str]) -> Set[str]:
         return {
-            dependency
-            for plugin in scheduled_analyses
-            for dependency in self.plugins[plugin].DEPENDENCIES
+            dependency for plugin in scheduled_analyses for dependency in self.plugins[plugin].DEPENDENCIES
         }.difference(scheduled_analyses)
 
     def reschedule_failed_analysis_task(self, fw_object: Union[Firmware, FileObject]):
         failed_plugin, cause = fw_object.analysis_exception
-        fw_object.processed_analysis[failed_plugin] = {'failed': cause}
+        fw_object.processed_analysis[failed_plugin] = self._get_failed_analysis_result(cause, failed_plugin)
         for plugin in fw_object.scheduled_analysis[:]:
             if failed_plugin in self.plugins[plugin].DEPENDENCIES:
                 fw_object.scheduled_analysis.remove(plugin)
-                logging.warning(f'Unscheduled analysis {plugin} for {fw_object.uid} because dependency {failed_plugin} failed')
-                fw_object.processed_analysis[plugin] = {'failed': f'Analysis of dependency {failed_plugin} failed'}
+                logging.warning(
+                    f'Unscheduled analysis {plugin} for {fw_object.uid} because dependency {failed_plugin} failed'
+                )
+                fw_object.processed_analysis[plugin] = self._get_failed_analysis_result(
+                    f'Analysis of dependency {failed_plugin} failed', plugin
+                )
         fw_object.analysis_exception = None
+
+    def _get_failed_analysis_result(self, cause: str, plugin: str) -> dict:
+        return {
+            'failed': cause,
+            'plugin_version': self.plugins[plugin].VERSION,
+            'analysis_date': time(),
+        }

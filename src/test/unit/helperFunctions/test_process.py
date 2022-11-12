@@ -9,7 +9,7 @@ from test.common_helper import get_config_for_testing
 
 def breaking_process(wait: bool = False):
     if wait:
-        sleep(.5)
+        sleep(0.5)
     raise RuntimeError('now that\'s annoying')
 
 
@@ -26,9 +26,9 @@ def test_exception_safe_process():
 
 def test_check_worker_exceptions():
     config = get_config_for_testing()
-    config.set('ExpertSettings', 'throw_exceptions', 'true')
+    config.set('expert-settings', 'throw-exceptions', 'true')
 
-    process_list = [ExceptionSafeProcess(target=breaking_process, args=(True, ))]
+    process_list = [ExceptionSafeProcess(target=breaking_process, args=(True,))]
     process_list[0].start()
 
     result = check_worker_exceptions(process_list, 'foo', config=config)
@@ -42,9 +42,9 @@ def test_check_worker_exceptions():
 
 def test_check_worker_restart(caplog):
     config = get_config_for_testing()
-    config.set('ExpertSettings', 'throw_exceptions', 'false')
+    config.set('expert-settings', 'throw-exceptions', 'false')
 
-    worker = ExceptionSafeProcess(target=breaking_process, args=(True, ))
+    worker = ExceptionSafeProcess(target=breaking_process, args=(True,))
     process_list = [worker]
     worker.start()
 

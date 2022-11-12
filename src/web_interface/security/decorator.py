@@ -10,7 +10,9 @@ def roles_accepted(*roles):
             if not _get_authentication(args):
                 return fn(*args, **kwargs)
             return original_decorator(*roles)(fn)(*args, **kwargs)
+
         return decorated_view
+
     return wrapper
 
 
@@ -25,5 +27,5 @@ def _get_config_from_endpoint(endpoint_class):
 
 def _get_authentication(args):
     config = _get_config_from_endpoint(endpoint_class=args[0])
-    authenticate = config.getboolean('ExpertSettings', 'authentication')
+    authenticate = config.getboolean('expert-settings', 'authentication')
     return authenticate

@@ -7,18 +7,13 @@ from ..code.string_eval import AnalysisPlugin
 class TestAnalysisPlugInStringEvaluator(AnalysisPluginTest):
 
     PLUGIN_NAME = 'string_evaluator'
-
-    def setUp(self):
-        super().setUp()
-        config = self.init_basic_config()
-        self.analysis_plugin = AnalysisPlugin(self, config=config)
-
-    def tearDown(self):
-        super().tearDown()
+    PLUGIN_CLASS = AnalysisPlugin
 
     def test_find_strings(self):
         fo = create_test_file_object()
-        fo.processed_analysis['printable_strings'] = dict(strings=['reasonable', 'still_reasonable', 'n123ot\'(§rea\'§&son##+able'])
+        fo.processed_analysis['printable_strings'] = dict(
+            strings=['reasonable', 'still_reasonable', 'n123ot\'(§rea\'§&son##+able']
+        )
 
         fo = self.analysis_plugin.process_object(fo)
         results = fo.processed_analysis[self.PLUGIN_NAME]

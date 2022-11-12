@@ -3,31 +3,69 @@ from ipaddress import ip_address
 from analysis.PluginBase import AnalysisBasePlugin
 from helperFunctions.compare_sets import substring_is_in_list
 
-WHITELIST = ['get', 'set', 'post', 'send', 'receive', 'firmware', 'router', 'purenetworks.com', 'tplinkwifi.net',
-             'tplinklogin.net']
+WHITELIST = [
+    'get',
+    'set',
+    'post',
+    'send',
+    'receive',
+    'firmware',
+    'router',
+    'purenetworks.com',
+    'tplinkwifi.net',
+    'tplinklogin.net',
+]
 
-BLACKLIST = ['dict', 'example', 'lighttpd', 'adobe', 'netscape', 'w3', 'haxx.se', 'any.org',
-             'schemas', 'openvpn', 'gnu', 'openssl', 'support', 'itunes', 'github', 'git', 'google',
-             'openwrt', 'wikipedia', 'wiki', 'foo', 'jquery.com', 'showme.com', 'blog', 'forum', 'documentation',
-             'docs', 'purl', 'readme']
+BLACKLIST = [
+    'dict',
+    'example',
+    'lighttpd',
+    'adobe',
+    'netscape',
+    'w3',
+    'haxx.se',
+    'any.org',
+    'schemas',
+    'openvpn',
+    'gnu',
+    'openssl',
+    'support',
+    'itunes',
+    'github',
+    'git',
+    'google',
+    'openwrt',
+    'wikipedia',
+    'wiki',
+    'foo',
+    'jquery.com',
+    'showme.com',
+    'blog',
+    'forum',
+    'documentation',
+    'docs',
+    'purl',
+    'readme',
+]
 
 
 class AnalysisPlugin(AnalysisBasePlugin):
     NAME = 'interesting_uris'
     DEPENDENCIES = ['ip_and_uri_finder']
     MIME_WHITELIST = [
-        'text/plain', 'application/octet-stream', 'application/x-executable', 'application/x-object',
-        'application/x-sharedlib', 'application/x-dosexec'
+        'text/plain',
+        'application/octet-stream',
+        'application/x-executable',
+        'application/x-object',
+        'application/x-sharedlib',
+        'application/x-dosexec',
     ]
     DESCRIPTION = (
         'This plugin filters all URIs identified inside the file based on relevance.'
         'The resulting list of URIs has a higher probability of representing important resources.'
     )
     VERSION = '0.1'
-
-    def __init__(self, plugin_administrator, config=None, recursive=True, timeout=300):
-        super().__init__(plugin_administrator, config=config, recursive=recursive, timeout=timeout,
-                         plugin_path=__file__)
+    FILE = __file__
 
     def process_object(self, file_object):
         list_of_ips_and_uris = file_object.processed_analysis['ip_and_uri_finder']['summary']

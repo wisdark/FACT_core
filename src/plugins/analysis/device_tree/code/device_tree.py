@@ -17,14 +17,13 @@ class AnalysisPlugin(AnalysisBasePlugin):
     '''
     Device Tree Plug-in
     '''
+
     NAME = 'device_tree'
     DESCRIPTION = 'get the device tree in text from the device tree blob'
     DEPENDENCIES = ['file_type']
     VERSION = '1.0'
     MIME_BLACKLIST = [*MIME_BLACKLIST_COMPRESSED, 'audio', 'image', 'video']
-
-    def __init__(self, plugin_administrator, config=None, recursive=True):
-        super().__init__(plugin_administrator, config=config, recursive=recursive, plugin_path=__file__)
+    FILE = __file__
 
     def process_object(self, file_object: FileObject):
         file_object.processed_analysis[self.NAME] = {'summary': []}
@@ -41,7 +40,7 @@ class AnalysisPlugin(AnalysisBasePlugin):
                 tag_name=self.NAME,
                 value=self.NAME.replace('_', ' '),
                 color=TagColor.ORANGE,
-                propagate=False
+                propagate=False,
             )
 
         return file_object

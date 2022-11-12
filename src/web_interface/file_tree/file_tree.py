@@ -1,19 +1,52 @@
 from itertools import chain
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List, NamedTuple, Optional, Set
 
 from web_interface.file_tree.file_tree_node import FileTreeNode
 
 ARCHIVE_FILE_TYPES = [
-    'application/gzip', 'application/java-archive', 'application/rar', 'application/vnd.ms-cab-compressed',
-    'application/x-7z-compressed', 'application/x-ace', 'application/x-adf', 'application/x-alzip', 'application/x-arc',
-    'application/x-archive', 'application/x-arj', 'application/x-bzip2', 'application/x-cab', 'application/x-chm',
-    'application/x-compress', 'application/x-cpio', 'application/x-debian-package', 'application/x-dms',
-    'application/x-gzip', 'application/x-iso9660-image', 'application/x-lha', 'application/x-lrzip',
-    'application/x-lzh', 'application/x-lzip', 'application/x-lzma', 'application/x-lzop', 'application/x-rar',
-    'application/x-redhat-package-manager', 'application/x-rpm', 'application/x-rzip', 'application/x-shar',
-    'application/x-sit', 'application/x-sitx', 'application/x-stuffit', 'application/x-stuffitx', 'application/x-tar',
-    'application/x-xz', 'application/x-zip-compressed', 'application/x-zoo', 'application/zip', 'application/zpaq',
-    'audio/flac', 'compression/zlib'
+    'application/gzip',
+    'application/java-archive',
+    'application/rar',
+    'application/vnd.ms-cab-compressed',
+    'application/x-7z-compressed',
+    'application/x-ace',
+    'application/x-adf',
+    'application/x-alzip',
+    'application/x-arc',
+    'application/x-archive',
+    'application/x-arj',
+    'application/x-bzip2',
+    'application/x-cab',
+    'application/x-chm',
+    'application/x-compress',
+    'application/x-cpio',
+    'application/x-debian-package',
+    'application/x-dms',
+    'application/x-gzip',
+    'application/x-iso9660-image',
+    'application/x-lha',
+    'application/x-lrzip',
+    'application/x-lzh',
+    'application/x-lzip',
+    'application/x-lzma',
+    'application/x-lzop',
+    'application/x-rar',
+    'application/x-redhat-package-manager',
+    'application/x-rpm',
+    'application/x-rzip',
+    'application/x-shar',
+    'application/x-sit',
+    'application/x-sitx',
+    'application/x-stuffit',
+    'application/x-stuffitx',
+    'application/x-tar',
+    'application/x-xz',
+    'application/x-zip-compressed',
+    'application/x-zoo',
+    'application/zip',
+    'application/zpaq',
+    'audio/flac',
+    'compression/zlib',
 ]
 TYPE_TO_ICON = {
     'application/x-executable': '/static/file_icons/binary.png',
@@ -29,13 +62,24 @@ TYPE_CATEGORY_TO_ICON = {
 }
 
 
-def get_correct_icon_for_mime(mime_type: str) -> str:
+class FileTreeData(NamedTuple):
+    uid: str
+    file_name: str
+    size: int
+    virtual_file_path: Dict[str, List[str]]
+    mime: str
+    included_files: Set[str]
+
+
+def get_correct_icon_for_mime(mime_type: Optional[str]) -> str:
     '''
     Retrieve the path to appropriate icon for a given mime type. The icons are located in the static folder of the
     web interface and the paths therefore start with "/static". Archive types all receive the same icon.
 
     :param mime_type: The MIME type of a file (in the file tree).
     '''
+    if mime_type is None:
+        return '/static/file_icons/unknown.png'
     if mime_type in ARCHIVE_FILE_TYPES:
         return '/static/file_icons/archive.png'
     if mime_type in TYPE_TO_ICON:
@@ -52,12 +96,10 @@ def _get_partial_virtual_paths(virtual_path: Dict[str, List[str]], new_root: str
     If no paths containing ``new_root`` are found, a fallback path is created, consisting only of ``new_root``.
     '''
     paths_with_new_root = {
-        _get_vpath_relative_to(vpath, new_root)
-        for vpath in chain(*virtual_path.values())
-        if new_root in vpath
+        _get_vpath_relative_to(vpath, new_root) for vpath in chain(*virtual_path.values()) if new_root in vpath
     }
     if not paths_with_new_root:
-        return ['|{uid}|'.format(uid=new_root)]
+        return [f'|{new_root}|']
     return sorted(paths_with_new_root)
 
 
@@ -101,27 +143,21 @@ class VirtualPathFileTree:
     :param whitelist: A whitelist of file names needed to display partial trees in comparisons.
     '''
 
-    #: Required fields for a database query to build the file tree.
-    FO_DATA_FIELDS = {
-        '_id': 1, 'file_name': 1, 'files_included': 1, 'processed_analysis.file_type.mime': 1, 'size': 1,
-        'virtual_file_path': 1,
-    }
-
-    def __init__(self, root_uid: str, parent_uid: str, fo_data: dict, whitelist: Optional[List[str]] = None):
-        self.uid = fo_data['_id']
-        self.root_uid = root_uid if root_uid else list(fo_data['virtual_file_path'])[0]
+    def __init__(self, root_uid: str, parent_uid: str, fo_data: FileTreeData, whitelist: Optional[List[str]] = None):
+        self.uid = fo_data.uid
+        self.root_uid = root_uid if root_uid else list(fo_data.virtual_file_path)[0]
         self.parent_uid = parent_uid
-        self.fo_data = fo_data
+        self.fo_data: FileTreeData = fo_data
         self.whitelist = whitelist
         self.virtual_file_paths = self._get_virtual_file_paths()
 
     def _get_virtual_file_paths(self) -> List[str]:
         if self._file_tree_is_for_file_object():
-            return _get_partial_virtual_paths(self.fo_data['virtual_file_path'], self.root_uid)
-        return self.fo_data['virtual_file_path'][self.root_uid]
+            return _get_partial_virtual_paths(self.fo_data.virtual_file_path, self.root_uid)
+        return self.fo_data.virtual_file_path[self.root_uid]
 
     def _file_tree_is_for_file_object(self) -> bool:
-        return self.root_uid not in self.fo_data['virtual_file_path']
+        return self.root_uid not in self.fo_data.virtual_file_path
 
     def get_file_tree_nodes(self) -> Iterable[FileTreeNode]:
         '''
@@ -150,17 +186,19 @@ class VirtualPathFileTree:
 
     def _get_node_for_real_file(self, current_virtual_path: List[str]) -> FileTreeNode:
         return FileTreeNode(
-            self.uid, self.root_uid, virtual=False, name=self._get_file_name(current_virtual_path),
-            size=self.fo_data['size'], mime_type=self._get_mime_type(), has_children=self._has_children()
+            self.uid,
+            self.root_uid,
+            virtual=False,
+            name=self._get_file_name(current_virtual_path),
+            size=self.fo_data.size,
+            mime_type=self.fo_data.mime,
+            has_children=self._has_children(),
         )
 
-    def _get_mime_type(self) -> str:
-        return self.fo_data['processed_analysis'].get('file_type', {'mime': 'file-type-plugin/not-run-yet'}).get('mime')
-
     def _get_file_name(self, current_virtual_path: List[str]) -> str:
-        return current_virtual_path[0] if current_virtual_path else self.fo_data['file_name']
+        return current_virtual_path[0] if current_virtual_path else self.fo_data.file_name
 
     def _has_children(self) -> bool:
         if self.whitelist:
-            return any(f in self.fo_data['files_included'] for f in self.whitelist)
-        return self.fo_data['files_included'] != []
+            return any(f in self.fo_data.included_files for f in self.whitelist)
+        return bool(self.fo_data.included_files)

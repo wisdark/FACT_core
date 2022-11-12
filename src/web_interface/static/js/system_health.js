@@ -53,9 +53,10 @@ function getProgressBar(percentage, labelCurrent, labelMax, unit) {
     const value = `${labelCurrent} ${unit} / ${labelMax} ${unit}`;
     return `
         <div class="progress-bar text-center${percentage > 80 ? " bg-warning" : ""}" role="progressbar" style="width: ${percentage}%">
-            ${percentage >= 50 ? value : ""}
         </div>
-        &nbsp;&nbsp;${percentage < 50 ? value : ""}
+        <div class="justify-content-center d-flex position-absolute w-100" style="margin-top: 10px;">
+            ${value}
+        </div>
     `;
 }
 
@@ -146,7 +147,7 @@ function createFinishedAnalysisItem(uid, data) {
 }
 
 function getProgressParagraph(progressText) {
-    return `<p style="color: white; position: absolute; z-index: 3; width: 100%; margin-top: -3px; text-align: center;"><small>${progressText}</small></p>`;
+    return `<p style="color: white; position: absolute; z-index: 3; width: 100%; margin-top: -3px; text-align: center; padding-right: 15px;"><small>${progressText}</small></p>`;
 }
 
 function getDuration(start=null, duration=null) {

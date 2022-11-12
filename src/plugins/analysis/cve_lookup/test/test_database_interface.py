@@ -12,7 +12,7 @@ TEST_QUERIES = {
     'test_create': 'CREATE TABLE IF NOT EXISTS {} (x INTEGER)',
     'test_create_update': 'CREATE TABLE IF NOT EXISTS {} (cve_id TEXT NOT NULL, year INTEGER NOT NULL)',
     'test_insert': 'INSERT INTO {} (x) VALUES (?)',
-    'test_insert_cve_id': 'INSERT INTO {} (cve_id, year) VALUES (?, ?)'
+    'test_insert_cve_id': 'INSERT INTO {} (cve_id, year) VALUES (?, ?)',
 }
 
 try:
@@ -32,7 +32,7 @@ def setup() -> None:
         connection.commit()
         connection.close()
     except sqlite3.Error as error:
-        logging.error('[cve_lookup]: could not connect to test database: {} {}'.format(type(error).__name__, error))
+        logging.error(f'[cve_lookup]: could not connect to test database: {type(error).__name__} {error}')
     yield
     with suppress(OSError):
         remove(TEST_DB_PATH)

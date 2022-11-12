@@ -1,20 +1,18 @@
-from storage.db_interface_backend import BackEndDbInterface
-from test.acceptance.base import TestAcceptanceBase
-from test.common_helper import create_test_firmware
+from storage.db_interface_backend import BackendDbInterface
+from test.acceptance.base import TestAcceptanceBase  # pylint: disable=wrong-import-order
+from test.common_helper import create_test_firmware  # pylint: disable=wrong-import-order
 
 
 class TestAcceptanceNormalSearch(TestAcceptanceBase):
-
     def setUp(self):
         super().setUp()
         self._start_backend()
-        self.db_backend_interface = BackEndDbInterface(self.config)
+        self.db_backend_interface = BackendDbInterface(self.config)
         self.test_fw = create_test_firmware(device_name='test_fw')
         self.test_fw.release_date = '2001-02-03'
-        self.db_backend_interface.add_firmware(self.test_fw)
+        self.db_backend_interface.add_object(self.test_fw)
 
     def tearDown(self):
-        self.db_backend_interface.shutdown()
         self._stop_backend()
         super().tearDown()
 
@@ -38,13 +36,17 @@ class TestAcceptanceNormalSearch(TestAcceptanceBase):
             'device_name': '',
             'version': '',
             'release_date': '',
-            'hash_value': ''
+            'hash_value': '',
         }
-        rv = self.test_client.post('/database/search', content_type='multipart/form-data', follow_redirects=True, data=data)
+        rv = self.test_client.post(
+            '/database/search', content_type='multipart/form-data', follow_redirects=True, data=data
+        )
         assert self.test_fw.uid.encode() in rv.data, 'test firmware not found in empty search'
         data['file_name'] = self.test_fw.file_name
         data['vendor'] = self.test_fw.vendor
-        rv = self.test_client.post('/database/search', content_type='multipart/form-data', follow_redirects=True, data=data)
+        rv = self.test_client.post(
+            '/database/search', content_type='multipart/form-data', follow_redirects=True, data=data
+        )
         assert self.test_fw.uid.encode() in rv.data, 'test firmware not found in specific search'
 
     def _show_quick_search(self):

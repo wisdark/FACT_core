@@ -1,26 +1,18 @@
 from pathlib import Path
 
 from objects.file import FileObject
-from test.common_helper import get_test_data_dir
-from test.unit.analysis.analysis_plugin_test_class import AnalysisPluginTest
+from test.common_helper import get_test_data_dir  # pylint: disable=wrong-import-order
+from test.unit.analysis.analysis_plugin_test_class import AnalysisPluginTest  # pylint: disable=wrong-import-order
 
 from ..code.hardware_analysis import AnalysisPlugin
 
 TEST_DATA = Path(get_test_data_dir())
 
 
-class test_hardware_analysis_plugin(AnalysisPluginTest):
+class TestHardwareAnalysis(AnalysisPluginTest):
 
     PLUGIN_NAME = 'hardware_analysis'
-
-    def setUp(self):
-        super().setUp()
-        config = self.init_basic_config()
-
-        self.analysis_plugin = AnalysisPlugin(self, config=config)
-
-    def tearDown(self):
-        super().tearDown()
+    PLUGIN_CLASS = AnalysisPlugin
 
     def test_cpu_architecture_found(self):
         test_object = FileObject()
@@ -42,7 +34,9 @@ class test_hardware_analysis_plugin(AnalysisPluginTest):
     def test_kernel_config_found(self):
 
         test_object = FileObject()
-        test_object.processed_analysis['kernel_config'] = {'kernel_config':  'This is a test\n#This is not important\nThis is important'}
+        test_object.processed_analysis['kernel_config'] = {
+            'kernel_config': 'This is a test\n#This is not important\nThis is important'
+        }
         result = self.analysis_plugin.filter_kernel_config(test_object)
 
         assert result[0] == 'This is a test'

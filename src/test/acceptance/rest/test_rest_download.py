@@ -6,7 +6,6 @@ from test.common_helper import create_test_firmware
 
 
 class TestRestDownloadFirmware(TestAcceptanceBaseWithDb):
-
     def setUp(self):
         super().setUp()
         self.test_fw = create_test_firmware(device_class='test class', device_name='test device', vendor='test vendor')
@@ -23,7 +22,7 @@ class TestRestDownloadFirmware(TestAcceptanceBaseWithDb):
         assert f'"SHA256": "{self.test_fw.sha256}"'.encode() in rv.data, 'rest download response incorrect'
 
     def test_run_from_upload_to_show_analysis(self):
-        self.db_backend.add_firmware(self.test_fw)
+        self.db_backend.add_object(self.test_fw)
         self.fs_organizer.store_file(self.test_fw)
 
         self._rest_search()

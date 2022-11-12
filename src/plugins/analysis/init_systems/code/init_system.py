@@ -17,15 +17,15 @@ class AnalysisPlugin(AnalysisBasePlugin):
     Original version by Stefan Viergutz created during Firmware Bootcamp WT16/17 at University of Bonn
     Refactored and improved by Fraunhofer FKIE
     '''
+
     NAME = 'init_systems'
     DESCRIPTION = 'detect and analyze auto start services'
     DEPENDENCIES = ['file_type']
     VERSION = '0.4.2'
+    FILE = __file__
 
-    def __init__(self, plugin_administrator, config=None, recursive=True):
-        self.config = config
+    def additional_setup(self):
         self.content = None
-        super().__init__(plugin_administrator, config=config, recursive=recursive, plugin_path=__file__)
 
     @staticmethod
     def _is_text_file(file_object):
@@ -84,7 +84,9 @@ class AnalysisPlugin(AnalysisBasePlugin):
         result = {}
         match_description = self._findall_regex(r'^[^#].*(?<=description)\s*(.*)', self.content)
         match_exec = self._findall_regex(r'[^#]^exec\s*((?:.*\\\n)*.*)', self.content)
-        match_pre_start = self._findall_regex(r'(?<=pre-start script\n)(?:(?:[\S\s]*?)[\n]*)(?=\nend script)', self.content)
+        match_pre_start = self._findall_regex(
+            r'(?<=pre-start script\n)(?:(?:[\S\s]*?)[\n]*)(?=\nend script)', self.content
+        )
         match_script = self._findall_regex(r'(?<=^script\n)(?:(?:[\S\s]*?)[\n]*)(?=\nend script)', self.content)
         result['description'] = match_description if match_description else [file_object.file_name]
         if match_exec:
@@ -126,7 +128,7 @@ class AnalysisPlugin(AnalysisBasePlugin):
     def process_object(self, file_object):
         if self._is_text_file(file_object) and (file_object.file_name not in FILE_IGNORES):
             file_path = self._get_file_path(file_object)
-            self.content = make_unicode_string(file_object.binary)
+            self.content = make_unicode_string(file_object.binary)  # pylint: disable=attribute-defined-outside-init
             if '/inittab' in file_path:
                 file_object.processed_analysis[self.NAME] = self._get_inittab_config(file_object)
             if 'systemd/system/' in file_path:

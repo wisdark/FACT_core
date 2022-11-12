@@ -5,12 +5,11 @@ from tempfile import TemporaryDirectory
 import pytest
 
 from helperFunctions.install import (
-    InstallationError, OperateInDirectory, _run_shell_command_raise_on_return_code, read_package_list_from_file
+    InstallationError,
+    OperateInDirectory,
+    _run_shell_command_raise_on_return_code,
+    read_package_list_from_file,
 )
-
-
-def _patch_shell_command(patch, mock_output: str, mock_return_code: int):
-    patch.setattr('helperFunctions.install.execute_shell_command_get_return_code', lambda shell_command, timeout=None: (mock_output, mock_return_code))
 
 
 def test_run_command_succeeds():
