@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from __future__ import annotations
 
 from sqlalchemy import select
 
@@ -19,9 +19,9 @@ class AnalysisPlugin(AnalysisBasePlugin):
     VERSION = '0.2'
     FILE = __file__
 
-    def __init__(self, *args, config=None, db_interface=None, **kwargs):
-        self.db = TLSHInterface(config) if db_interface is None else db_interface
-        super().__init__(*args, config=config, **kwargs)
+    def __init__(self, *args, **kwargs):
+        self.db = TLSHInterface()
+        super().__init__(*args, **kwargs)
 
     def process_object(self, file_object):
         comparisons_dict = {}
@@ -36,7 +36,7 @@ class AnalysisPlugin(AnalysisBasePlugin):
 
 
 class TLSHInterface(ReadOnlyDbInterface):
-    def get_all_tlsh_hashes(self) -> List[Tuple[str, str]]:
+    def get_all_tlsh_hashes(self) -> list[tuple[str, str]]:
         with self.get_read_only_session() as session:
             query = (
                 select(AnalysisEntry.uid, AnalysisEntry.result['tlsh'])

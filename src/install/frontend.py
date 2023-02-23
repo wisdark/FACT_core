@@ -5,13 +5,13 @@ from contextlib import suppress
 from pathlib import Path
 from subprocess import PIPE, STDOUT
 
+from config import cfg
 from helperFunctions.install import (
     InstallationError,
     OperateInDirectory,
     apt_install_packages,
     dnf_install_packages,
     install_pip_packages,
-    load_main_config,
     read_package_list_from_file,
     run_cmd_with_logging,
 )
@@ -19,6 +19,8 @@ from helperFunctions.install import (
 DEFAULT_CERT = '.\n.\n.\n.\n.\nexample.com\n.\n\n\n'
 INSTALL_DIR = Path(__file__).parent
 PIP_DEPENDENCIES = INSTALL_DIR / 'requirements_frontend.txt'
+MIME_ICON_DIR = INSTALL_DIR.parent / 'web_interface' / 'static' / 'file_icons'
+ICON_THEME_INSTALL_PATH = Path('/usr/share/icons/Papirus/24x24')
 
 
 def execute_commands_and_raise_on_return_code(commands, error=None):  # pylint: disable=invalid-name
@@ -32,8 +34,7 @@ def execute_commands_and_raise_on_return_code(commands, error=None):  # pylint: 
 def _create_directory_for_authentication():  # pylint: disable=invalid-name
     logging.info('Creating directory for authentication')
 
-    config = load_main_config()
-    dburi = config.get('data-storage', 'user-database')
+    dburi = cfg.data_storage.user_database
     # pylint: disable=fixme
     factauthdir = '/'.join(dburi.split('/')[:-1])[10:]  # FIXME this should be beautified with pathlib
 
@@ -121,6 +122,19 @@ def _install_docker_images(radare):
         raise InstallationError(f'Failed to pull pdf report container:\n{docker_process.stdout}')
 
 
+def _copy_mime_icons():
+    # copy mime icons to the static folder so that they can be used by the web server
+    for source, target in [
+        ('mimetypes', 'mimetypes'),
+        ('devices/audio-card.svg', 'firmware.svg'),
+        ('devices/media-floppy.svg', 'filesystem.svg'),
+        ('places/folder-brown.svg', 'folder.svg'),
+        ('status/dialog-error.svg', 'not_analyzed.svg'),
+        ('emblems/emblem-symbolic-link.svg', 'mimetypes/inode-symlink.svg'),
+    ]:
+        run_cmd_with_logging(f'cp -rL {ICON_THEME_INSTALL_PATH / source} {MIME_ICON_DIR / target}')
+
+
 def main(skip_docker, radare, nginx, distribution):
     if distribution != 'fedora':
         pkgs = read_package_list_from_file(INSTALL_DIR / 'apt-pkgs-frontend.txt')
@@ -135,7 +149,7 @@ def main(skip_docker, radare, nginx, distribution):
     install_pip_packages(PIP_DEPENDENCIES)
 
     # npm does not allow us to install packages to a specific directory
-    with OperateInDirectory("../../src/web_interface/static"):
+    with OperateInDirectory('../../src/web_interface/static'):
         # EBADENGINE can probably be ignored because we probably don't need node.
         run_cmd_with_logging('npm install --no-fund .')
 
@@ -147,6 +161,10 @@ def main(skip_docker, radare, nginx, distribution):
 
     if not skip_docker:
         _install_docker_images(radare)
+
+    if not MIME_ICON_DIR.is_dir():
+        MIME_ICON_DIR.mkdir()
+        _copy_mime_icons()
 
     with OperateInDirectory(INSTALL_DIR.parent.parent):
         with suppress(FileNotFoundError):

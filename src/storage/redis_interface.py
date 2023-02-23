@@ -1,10 +1,13 @@
-from configparser import ConfigParser
+from __future__ import annotations
+
 from math import ceil
 from pickle import dumps, loads
 from random import randint
-from typing import Any, Optional, Union
+from typing import Any
 
 from redis.client import Redis
+
+from config import cfg
 
 REDIS_MAX_VALUE_SIZE = 512_000_000  # 512 MB (not to be confused with 512 MiB)
 CHUNK_MAGIC = b'$CHUNKED$'
@@ -12,12 +15,12 @@ SEPARATOR = '#'
 
 
 class RedisInterface:
-    def __init__(self, config: ConfigParser, chunk_size=REDIS_MAX_VALUE_SIZE):
-        self.config = config
+    def __init__(self, chunk_size=REDIS_MAX_VALUE_SIZE):
         self.chunk_size = chunk_size
-        redis_db = config.getint('data-storage', 'redis-fact-db')
-        redis_host = config.get('data-storage', 'redis-host')
-        redis_port = config.getint('data-storage', 'redis-port')
+        redis_db = cfg.data_storage.redis_fact_db
+        redis_host = cfg.data_storage.redis_host
+        redis_port = cfg.data_storage.redis_port
+
         self.redis = Redis(host=redis_host, port=redis_port, db=redis_db)
 
     def set(self, key: str, value: Any):
@@ -33,7 +36,7 @@ class RedisInterface:
     def queue_get(self, key: str) -> Any:
         return self._combine_if_split(self.redis.lpop(key))
 
-    def _split_if_necessary(self, value: bytes) -> Union[str, bytes]:
+    def _split_if_necessary(self, value: bytes) -> str | bytes:
         return self._store_chunks(value) if len(value) > self.chunk_size else value
 
     def _store_chunks(self, value) -> str:
@@ -51,7 +54,7 @@ class RedisInterface:
             if not self.redis.exists(key):
                 return key
 
-    def _combine_if_split(self, value: Optional[bytes], delete: bool = True) -> Any:
+    def _combine_if_split(self, value: bytes | None, delete: bool = True) -> Any:
         if value is None:
             return None
         if value.startswith(CHUNK_MAGIC):
@@ -66,7 +69,7 @@ class RedisInterface:
             ]
         )
 
-    def _redis_pop(self, key: str) -> Optional[bytes]:
+    def _redis_pop(self, key: str) -> bytes | None:
         pipeline = self.redis.pipeline()
         pipeline.get(key)
         pipeline.delete(key)

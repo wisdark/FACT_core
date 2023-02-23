@@ -1,21 +1,17 @@
+from __future__ import annotations
+
 # pylint: disable=no-self-use,unused-argument
-import grp
 import os
 from base64 import standard_b64encode
-from configparser import ConfigParser
 from contextlib import contextmanager
 from copy import deepcopy
 from pathlib import Path
-from tempfile import TemporaryDirectory
-from typing import List, Optional, Union
 
-from helperFunctions.config import load_config
 from helperFunctions.data_conversion import get_value_of_first_key
 from helperFunctions.fileSystem import get_src_dir
 from helperFunctions.tag import TagColor
 from objects.file import FileObject
 from objects.firmware import Firmware
-from storage.db_setup import DbSetup
 
 
 def get_test_data_dir():
@@ -114,64 +110,6 @@ class MockFileObject:
         self.binary = binary
         self.file_path = file_path
         self.processed_analysis = {'file_type': {'mime': 'application/x-executable'}}
-
-
-class CommonIntercomMock:
-    tasks = []
-
-    def __init__(self, *_, **__):
-        pass
-
-    @staticmethod
-    def get_available_analysis_plugins():
-        common_fields = ('0.0.', [], [], [], 1)
-        return {
-            'default_plugin': ('default plugin description', False, {'default': True}, *common_fields),
-            'mandatory_plugin': ('mandatory plugin description', True, {'default': False}, *common_fields),
-            'optional_plugin': ('optional plugin description', False, {'default': False}, *common_fields),
-            'file_type': ('file_type plugin', False, {'default': False}, *common_fields),
-            'unpacker': ('Additional information provided by the unpacker', True, False),
-        }
-
-    def shutdown(self):
-        pass
-
-    @staticmethod
-    def peek_in_binary(*_):
-        return b'foobar'
-
-    @staticmethod
-    def get_binary_and_filename(uid):
-        if uid == TEST_FW.uid:
-            return TEST_FW.binary, TEST_FW.file_name
-        if uid == TEST_TEXT_FILE.uid:
-            return TEST_TEXT_FILE.binary, TEST_TEXT_FILE.file_name
-        return None
-
-    @staticmethod
-    def get_repacked_binary_and_file_name(uid):
-        if uid == TEST_FW.uid:
-            return TEST_FW.binary, f'{TEST_FW.file_name}.tar.gz'
-        return None, None
-
-    @staticmethod
-    def add_binary_search_request(*_):
-        return 'binary_search_id'
-
-    @staticmethod
-    def get_binary_search_result(uid):
-        if uid == 'binary_search_id':
-            return {'test_rule': ['test_uid']}, b'some yara rule'
-        return None, None
-
-    def add_compare_task(self, compare_id, force=False):
-        self.tasks.append((compare_id, force))
-
-    def add_analysis_task(self, task):
-        self.tasks.append(task)
-
-    def add_re_analyze_task(self, task, unpack=True):  # pylint: disable=unused-argument
-        self.tasks.append(task)
 
 
 class CommonDatabaseMock:  # pylint: disable=too-many-public-methods
@@ -313,80 +251,27 @@ def get_firmware_for_rest_upload_test():
     return data
 
 
-def get_config_for_testing(temp_dir: Optional[Union[TemporaryDirectory, str]] = None):
-    if isinstance(temp_dir, TemporaryDirectory):
-        temp_dir = temp_dir.name
-    config = ConfigParser()
-    config.add_section('data-storage')
-    config.set('data-storage', 'report-threshold', '2048')
-    config.set('data-storage', 'password-salt', '1234')
-    config.set('data-storage', 'firmware-file-storage-directory', '/tmp/fact_test_fs_directory')
-    docker_mount_base_dir = create_docker_mount_base_dir()
-    config.set('data-storage', 'docker-mount-base-dir', str(docker_mount_base_dir))
-    config.add_section('unpack')
-    config.set('unpack', 'whitelist', '')
-    config.set('unpack', 'max-depth', '10')
-    config.add_section('default-plugins')
-    config.add_section('expert-settings')
-    config.set('expert-settings', 'block-delay', '0.1')
-    config.set('expert-settings', 'ssdeep-ignore', '1')
-    config.set('expert-settings', 'authentication', 'false')
-    config.set('expert-settings', 'intercom-poll-delay', '0.5')
-    config.set('expert-settings', 'nginx', 'false')
-    config.add_section('database')
-    config.set('database', 'results-per-page', '10')
-    load_users_from_main_config(config)
-    config.add_section('logging')
-    if temp_dir is not None:
-        config.set('data-storage', 'firmware-file-storage-directory', temp_dir)
-    config.set('expert-settings', 'radare2-host', 'localhost')
-    # -- postgres --
-    config.set('data-storage', 'postgres-server', 'localhost')
-    config.set('data-storage', 'postgres-port', '5432')
-    config.set('data-storage', 'postgres-database', 'fact_test')
-    return config
-
-
-def load_users_from_main_config(config: ConfigParser):
-    fact_config = load_config('main.cfg')
-    # -- postgres --
-    config.set('data-storage', 'postgres-ro-user', fact_config.get('data-storage', 'postgres-ro-user'))
-    config.set('data-storage', 'postgres-ro-pw', fact_config.get('data-storage', 'postgres-ro-pw'))
-    config.set('data-storage', 'postgres-rw-user', fact_config.get('data-storage', 'postgres-rw-user'))
-    config.set('data-storage', 'postgres-rw-pw', fact_config.get('data-storage', 'postgres-rw-pw'))
-    config.set('data-storage', 'postgres-del-user', fact_config.get('data-storage', 'postgres-del-user'))
-    config.set('data-storage', 'postgres-del-pw', fact_config.get('data-storage', 'postgres-del-pw'))
-    config.set('data-storage', 'postgres-admin-user', fact_config.get('data-storage', 'postgres-del-user'))
-    config.set('data-storage', 'postgres-admin-pw', fact_config.get('data-storage', 'postgres-del-pw'))
-    # -- redis --
-    config.set('data-storage', 'redis-fact-db', fact_config.get('data-storage', 'redis-test-db'))
-    config.set('data-storage', 'redis-host', fact_config.get('data-storage', 'redis-host'))
-    config.set('data-storage', 'redis-port', fact_config.get('data-storage', 'redis-port'))
-
-
-def store_binary_on_file_system(tmp_dir: str, test_object: Union[FileObject, Firmware]):
+def store_binary_on_file_system(tmp_dir: str, test_object: FileObject | Firmware):
     binary_dir = Path(tmp_dir) / test_object.uid[:2]
     binary_dir.mkdir(parents=True)
     (binary_dir / test_object.uid).write_bytes(test_object.binary)
 
 
-def setup_test_tables(config):
-    db_setup = DbSetup(config)
+def setup_test_tables(db_setup):
     db_setup.connection.create_tables()
     db_setup.set_table_privileges()
 
 
-def clear_test_tables(config):
-    db_setup = DbSetup(config)
+def clear_test_tables(db_setup):
     db_setup.connection.base.metadata.drop_all(db_setup.connection.engine)
 
 
 def generate_analysis_entry(
     plugin_version: str = '1.0',
     analysis_date: float = 0.0,
-    summary: Optional[List[str]] = None,
-    tags: Optional[dict] = None,
-    analysis_result: Optional[dict] = None,
+    summary: list[str] | None = None,
+    tags: dict | None = None,
+    analysis_result: dict | None = None,
 ):
     return {
         'plugin_version': plugin_version,
@@ -395,16 +280,3 @@ def generate_analysis_entry(
         'tags': tags or {},
         **(analysis_result or {}),
     }
-
-
-def create_docker_mount_base_dir() -> Path:
-    docker_mount_base_dir = Path('/tmp/fact-docker-mount-base-dir')
-    try:
-        docker_mount_base_dir.mkdir(0o770)
-    except FileExistsError:
-        pass
-    else:
-        docker_gid = grp.getgrnam('docker').gr_gid
-        os.chown(docker_mount_base_dir, -1, docker_gid)
-
-    return docker_mount_base_dir

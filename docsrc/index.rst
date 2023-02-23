@@ -24,8 +24,12 @@ Contents
    :maxdepth: 2
    :caption: Modules:
 
+   modules/config
+   modules/conftest
+   modules/test
    modules/helperFunctions
    modules/objects
+   modules/plugins
    modules/scheduler
    modules/web_interface
 

@@ -17,7 +17,7 @@ sys.path.insert(0, str(FACT_SRC))
 
 # pylint: disable=redefined-builtin,invalid-name
 project = 'FACT'
-copyright = '2020-2022  Fraunhofer FKIE'
+copyright = '2020-2023  Fraunhofer FKIE'
 author = 'jstucke'
 
 
@@ -57,31 +57,62 @@ html_logo = '../src/web_interface/static/FACT_smaller.png'
 # This value contains a list of modules to be mocked up. This is useful when some external dependencies
 # are not met at build time and break the building process. You may only specify the root package
 autodoc_mock_imports = [
+    'appdirs',
+    'bcrypt',
+    'bleach',
     'common_helper_encoder',
     'common_helper_files',
-    'common_helper_mongo',
+    'common_helper_filter',
+    'common_helper_yara',
+    'cryptography',
+    'dateutil',
     'distro',
     'docker',
+    'docker-compose',
+    'email-validator',
+    'fact_helper_file',
+    'flaky',
     'flask',
-    'gridfs',
+    'flask_login',
+    'flask_paginate',
+    'flask_restx',
+    'flask_security',
+    'flask_sqlalchemy',
+    'itsdangerous',
     'lief',
+    'magic',
+    'markupsafe',
     'matplotlib',
+    'more_itertools',
+    'networkx',
+    'numpy',
     'passlib',
     'pluginbase',
+    'prompt_toolkit',
     'psutil',
+    'psycopg2',
     'pydantic',
-    'pymongo',
+    'pylint',
+    'pyopenssl',
+    'pytest',
+    'pytest-cov',
+    'pytest-timeout',
+    'redis',
     'requests',
+    'rich',
     'si_prefix',
     'sqlalchemy',
     'ssdeep',
+    'testresources',
     'tlsh',
+    'uwsgi',
     'werkzeug',
-    'yaml',
+    'wtforms',
+    'xmltodict',
     'yara',
 ]
 
-# This value controls how to represents typehints. The setting takes the following values:
+# This value controls how to represent typehints. The setting takes the following values:
 #     'signature' – Show typehints as its signature (default)
 #     'description' – Show typehints as content of function or method
 #     'none' – Do not show typehints

@@ -1,5 +1,8 @@
+from __future__ import annotations
+
+from collections.abc import Callable
 from types import MethodType
-from typing import Any, Callable, NamedTuple, Tuple
+from typing import Any, NamedTuple
 
 from web_interface.frontend_database import FrontendDatabase
 
@@ -11,7 +14,7 @@ POST = 'POST'
 
 class Route(NamedTuple):
     rule: str
-    methods: Tuple[str, ...]
+    methods: tuple[str, ...]
 
 
 class AppRoute:
@@ -40,9 +43,8 @@ class AppRoute:
 
 
 class ComponentBase:
-    def __init__(self, app, config, db: FrontendDatabase, intercom, api=None):
+    def __init__(self, app, db: FrontendDatabase, intercom, api=None):
         self._app = app
-        self._config = config
         self._api = api
         self.db = db
         self.intercom = intercom

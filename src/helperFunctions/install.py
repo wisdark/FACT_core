@@ -1,4 +1,5 @@
-import configparser
+from __future__ import annotations
+
 import logging
 import os
 import shlex
@@ -7,7 +8,6 @@ import subprocess
 import sys
 from pathlib import Path
 from subprocess import DEVNULL, PIPE, STDOUT, CalledProcessError
-from typing import List, Tuple, Union
 
 import distro
 
@@ -27,7 +27,7 @@ class OperateInDirectory:
     :param remove: Optional boolean to indicate if `target_directory` should be removed on exit.
     '''
 
-    def __init__(self, target_directory: Union[str, Path], remove: bool = False):
+    def __init__(self, target_directory: str | Path, remove: bool = False):
         self._current_working_dir = None
         self._target_directory = str(target_directory)
         self._remove = remove
@@ -58,7 +58,7 @@ def remove_folder(folder_name: str):
         raise InstallationError(exception) from None
 
 
-def log_current_packages(packages: Tuple[str], install: bool = True):
+def log_current_packages(packages: tuple[str], install: bool = True):
     '''
     Log which packages are installed or removed.
 
@@ -157,7 +157,7 @@ def check_if_command_in_path(command: str) -> bool:
     return command_process.returncode == 0
 
 
-def install_github_project(project_path: str, commands: List[str]):
+def install_github_project(project_path: str, commands: list[str]):
     '''
     Install github project by cloning it, running a set of commands and removing the cloned files afterwards.
 
@@ -196,20 +196,6 @@ def _checkout_github_project(github_path: str, folder_name: str):
         raise InstallationError(f'Cloning from github failed for project {github_path}\n {clone_url}')
     if not Path('.', folder_name).exists():
         raise InstallationError(f'Repository creation failed on folder {folder_name}\n {clone_url}')
-
-
-def load_main_config() -> configparser.ConfigParser:
-    '''
-    Create config object from main.cfg in src/config folder.
-
-    :return: config object.
-    '''
-    config = configparser.ConfigParser()
-    config_path = Path(Path(__file__).parent.parent, 'config', 'main.cfg')
-    if not config_path.is_file():
-        raise InstallationError(f'Could not load config at path {config_path}')
-    config.read(str(config_path))
-    return config
 
 
 def run_cmd_with_logging(cmd: str, raise_error=True, shell=False, silent: bool = False, **kwargs):

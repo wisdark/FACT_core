@@ -1,4 +1,4 @@
-from typing import Dict
+from __future__ import annotations
 
 from analysis.PluginBase import AnalysisBasePlugin
 from storage.fsorganizer import FSOrganizer
@@ -42,10 +42,9 @@ class AnalysisPlugin(AnalysisBasePlugin):
         'video',
     ]
 
-    def __init__(self, config=None):
-        self.config = config
-        self._fs_organizer = FSOrganizer(config)
-        super().__init__(config=config)
+    def __init__(self):
+        self._fs_organizer = FSOrganizer()
+        super().__init__()
 
     def process_object(self, file_object):
         arch_dict = construct_result(file_object, self._fs_organizer)
@@ -55,7 +54,7 @@ class AnalysisPlugin(AnalysisBasePlugin):
         return file_object
 
 
-def construct_result(file_object, fs_organizer) -> Dict[str, str]:
+def construct_result(file_object, fs_organizer) -> dict[str, str]:
     '''
     Returns a dict where keys are the architecture and values are the means of
     detection

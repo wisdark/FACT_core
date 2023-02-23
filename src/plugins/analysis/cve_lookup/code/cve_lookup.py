@@ -1,12 +1,16 @@
+from __future__ import annotations
+
 import logging
 import operator
+import re
 import sys
 from collections import namedtuple
+from collections.abc import Callable
 from itertools import combinations
 from pathlib import Path
-from re import match
-from typing import Callable, Dict, List, NamedTuple, Optional, Tuple
+from typing import NamedTuple
 
+from packaging.version import InvalidVersion, Version
 from packaging.version import parse as parse_version
 from pyxdameraulevenshtein import damerau_levenshtein_distance as distance  # pylint: disable=no-name-in-module
 
@@ -27,6 +31,8 @@ MAX_TERM_SPREAD = (
     3  # a range in which the product term is allowed to come after the vendor term for it not to be a false positive
 )
 MAX_LEVENSHTEIN_DISTANCE = 0
+DOTTED_VERSION_REGEX = re.compile(r'^[a-zA-Z0-9\-]+(\\\.[a-zA-Z0-9\-]+)+$')
+VALID_VERSION_REGEX = re.compile(r'v?(\d+!)?\d+(\.\d+)*([.-]?(a(lpha)?|b(eta)?|c|dev|post|pre(view)?|r|rc)?\d+)?')
 
 
 class Product(NamedTuple):
@@ -57,7 +63,7 @@ class AnalysisPlugin(AnalysisBasePlugin):
     DESCRIPTION = 'lookup CVE vulnerabilities'
     MIME_BLACKLIST = MIME_BLACKLIST_NON_EXECUTABLE
     DEPENDENCIES = ['software_components']
-    VERSION = '0.0.4'
+    VERSION = '0.0.5'
     FILE = __file__
 
     def process_object(self, file_object):
@@ -74,7 +80,7 @@ class AnalysisPlugin(AnalysisBasePlugin):
         self.add_tags(cves['cve_results'], file_object)
         return file_object
 
-    def _create_summary(self, cve_results: Dict[str, Dict[str, Dict[str, str]]]) -> List[str]:
+    def _create_summary(self, cve_results: dict[str, dict[str, dict[str, str]]]) -> list[str]:
         return list(
             {
                 software if not self._software_has_critical_cve(entry) else f'{software} (CRITICAL)'
@@ -82,10 +88,10 @@ class AnalysisPlugin(AnalysisBasePlugin):
             }
         )
 
-    def _software_has_critical_cve(self, cve_dict: Dict[str, Dict[str, str]]) -> bool:
+    def _software_has_critical_cve(self, cve_dict: dict[str, dict[str, str]]) -> bool:
         return any(self._entry_has_critical_rating(entry) for entry in cve_dict.values())
 
-    def add_tags(self, cve_results: Dict[str, Dict[str, Dict[str, str]]], file_object: FileObject):
+    def add_tags(self, cve_results: dict[str, dict[str, dict[str, str]]], file_object: FileObject):
         # results structure: {'component': {'cve_id': {'score2': '6.4', 'score3': 'N/A'}}}
         for component in cve_results:
             for cve_id in cve_results[component]:
@@ -102,14 +108,14 @@ class AnalysisPlugin(AnalysisBasePlugin):
         return False
 
     @staticmethod
-    def _split_component(component: str) -> Tuple[str, str]:
+    def _split_component(component: str) -> tuple[str, str]:
         component_parts = component.split()
         if len(component_parts) == 1:
             return component_parts[0], 'ANY'
         return ' '.join(component_parts[:-1]), component_parts[-1]
 
 
-def look_up_vulnerabilities(product_name: str, requested_version: str) -> Optional[dict]:
+def look_up_vulnerabilities(product_name: str, requested_version: str) -> dict | None:
     with DatabaseInterface() as db:
         product_terms, version = (
             replace_characters_and_wildcards(generate_search_terms(product_name)),
@@ -130,19 +136,19 @@ def look_up_vulnerabilities(product_name: str, requested_version: str) -> Option
     return cve_candidates
 
 
-def generate_search_terms(product_name: str) -> List[str]:
+def generate_search_terms(product_name: str) -> list[str]:
     terms = product_name.split(' ')
     product_terms = ['_'.join(terms[i:j]).lower() for i, j in combinations(range(len(terms) + 1), 2)]
     return [term for term in product_terms if len(term) > 1 and not term.isdigit()]
 
 
-def find_matching_cpe_product(cpe_matches: List[Product], requested_version: str) -> Product:
+def find_matching_cpe_product(cpe_matches: list[Product], requested_version: str) -> Product:
     if requested_version.isdigit() or is_valid_dotted_version(requested_version):
-        version_numbers = [t.version_number for t in cpe_matches]
+        version_numbers = [t.version_number for t in cpe_matches if t.version_number not in ['N/A', 'ANY']]
         if requested_version in version_numbers:
             return find_cpe_product_with_version(cpe_matches, requested_version)
         version_numbers.append(requested_version)
-        version_numbers.sort(key=parse_version)
+        version_numbers.sort(key=lambda v: coerce_version(unescape(v)))
         next_closest_version = find_next_closest_version(version_numbers, requested_version)
         return find_cpe_product_with_version(cpe_matches, next_closest_version)
     if requested_version == 'ANY':
@@ -154,14 +160,14 @@ def find_matching_cpe_product(cpe_matches: List[Product], requested_version: str
 
 
 def is_valid_dotted_version(version: str) -> bool:
-    return bool(match(r'^[a-zA-Z0-9\-]+(\\\.[a-zA-Z0-9\-]+)+$', version))
+    return bool(DOTTED_VERSION_REGEX.match(version))
 
 
 def find_cpe_product_with_version(cpe_matches, requested_version):
     return [product for product in cpe_matches if product.version_number == requested_version][0]
 
 
-def find_next_closest_version(sorted_version_list: List[str], requested_version: str) -> str:
+def find_next_closest_version(sorted_version_list: list[str], requested_version: str) -> str:
     search_word_index = sorted_version_list.index(requested_version)
     if search_word_index == 0:
         return sorted_version_list[search_word_index + 1]
@@ -226,8 +232,33 @@ def versions_match(cpe_version: str, cve_entry: CveDbEntry) -> bool:
     return True
 
 
+def coerce_version(version: str) -> Version:
+    '''
+    The version may not be PEP 440 compliant -> try to convert it to something that we can use for comparison
+    '''
+    try:
+        return parse_version(version)
+    except InvalidVersion:
+        # try to convert other conventions (e.g. debian policy) to PEP 440
+        fixed_version = version.lower().replace('~', '-').replace(':', '!', 1).replace('_', '-')
+    try:
+        return parse_version(fixed_version)
+    except InvalidVersion:
+        match = VALID_VERSION_REGEX.match(fixed_version)
+        if match:
+            valid_version = match.group()
+            rest = re.sub(r'[^\w.-]', '', fixed_version[len(valid_version) :]).lstrip('._-')
+            return parse_version(f'{valid_version}+{rest}')
+        # try to throw away revisions and other stuff at the end as a final measure
+        return parse_version(re.split(r'[^v.\d]', fixed_version)[0])
+
+
 def compare_version(version1: str, version2: str, comp_operator: Callable) -> bool:
-    return comp_operator(parse_version(version1), parse_version(version2))
+    try:
+        return comp_operator(coerce_version(version1), coerce_version(version2))
+    except InvalidVersion as error:
+        logging.debug(f'[cve_lookup]: Error while parsing software version: {error}')
+        return False
 
 
 def search_cve_summary(db: DatabaseInterface, product: namedtuple) -> dict:
@@ -250,7 +281,7 @@ def product_is_mentioned_in_summary(product: Product, summary: str) -> bool:
     return False
 
 
-def word_sequence_is_in_word_list(word_list: List[str], word_sequence: List[str]) -> bool:
+def word_sequence_is_in_word_list(word_list: list[str], word_sequence: list[str]) -> bool:
     if len(word_list) < len(word_sequence):
         return False
     for index in range(min(MAX_TERM_SPREAD, len(word_list) + 1 - len(word_sequence))):
@@ -259,14 +290,14 @@ def word_sequence_is_in_word_list(word_list: List[str], word_sequence: List[str]
     return False
 
 
-def remaining_words_present(word_list: List[str], words: List[str]) -> bool:
+def remaining_words_present(word_list: list[str], words: list[str]) -> bool:
     for word1, word2 in zip(word_list[: len(words)], words):
         if not terms_match(word1, word2):
             return False
     return True
 
 
-def match_cpe(db: DatabaseInterface, product_search_terms: list) -> List[Product]:
+def match_cpe(db: DatabaseInterface, product_search_terms: list) -> list[Product]:
     return list(
         {
             Product(vendor, product, version)

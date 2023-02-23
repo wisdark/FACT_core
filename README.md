@@ -5,7 +5,6 @@
 # The Firmware Analysis and Comparison Tool (FACT)
 
 [![codecov](https://codecov.io/gh/fkie-cad/FACT_core/branch/master/graph/badge.svg)](https://codecov.io/gh/fkie-cad/FACT_core)
-[![BCH compliance](https://bettercodehub.com/edge/badge/fkie-cad/FACT_core?branch=master)](https://bettercodehub.com/)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/d3910401cb58498a8c2d00be80092080)](https://www.codacy.com/gh/fkie-cad/FACT_core/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=fkie-cad/FACT_core&amp;utm_campaign=Badge_Grade)
 [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/FACT_core/community)
 
@@ -71,7 +70,11 @@ FACT provides an optional basic authentication, role and user management. More i
   * [PDF Report Generator](https://github.com/fkie-cad/fact_pdf_report)
 
 ## Vagrant
-Thanks to @botlabsDev for providing a [Vagrantfile](https://github.com/botlabsDev/FACTbox) to test and evaluate FACT.
+We provide monthly and ready-to-use vagrant boxes of our master branch. [Vagrant](https://www.vagrantup.com/) is an easy and convenient way to get started with FACT without having to install it on your machine. Just setup vagrant and import our provided box into VirtualBox. Our boxes can be found [here](https://app.vagrantup.com/fact-cad/boxes/FACT-master)!
+
+Check out on how to get started with FACT and vagrant in our [tutorial](https://github.com/fkie-cad/FACT_core/blob/master/INSTALL.vagrant.md).
+
+*Thanks to @botlabsDev, who initially provided a [Vagrantfile](https://github.com/botlabsDev/FACTbox) that is now, however, deprecated.*
 
 ## Contribute
 The easiest way to contribute is writing your own plug-in.
@@ -97,10 +100,15 @@ We've been happy to show FACT in a number of BlackHat Arsenal sessions.
 - [Pass the salt 2019](https://2019.pass-the-salt.org/talks/71.html) / [Slides](https://2019.pass-the-salt.org/files/slides/04-FACT.pdf) / [Video](https://passthesalt.ubicast.tv/videos/improving-your-firmware-security-analysis-process-with-fact/)
 - [Hardwear.io 2019](https://hardwear.io/netherlands-2019/speakers/johannes-vom-dorp-and-peter-weidenbach.php)
 
+## Social
+
+- <a rel="me" href="https://infosec.exchange/@fact">Mastodon</a>
+- [Twitter](https://twitter.com/FAandCTool)
+
 ## License
 ```
     Firmware Analysis and Comparison Tool (FACT)
-    Copyright (C) 2015-2022  Fraunhofer FKIE
+    Copyright (C) 2015-2023  Fraunhofer FKIE
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

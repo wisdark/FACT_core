@@ -40,3 +40,15 @@ known_first_party = ["analysis", "compare", "helperFunctions", "install", "inter
     "statistic", "storage", "test", "unpacker", "version", "web_interface"]
 known_third_party = "docker"
 profile = "black"
+
+[tool.pytest.ini_options]
+addopts = "-v"
+testpaths = [
+    "src/test",
+    "src/plugins/**/test",
+]
+markers = [
+    "AnalysisPluginTestConfig: Configure the analysis_plugin fixture",
+    "cfg_defaults: Overwrite defaults for the testing config",
+    "WebInterfaceUnitTestConfig: Configure the web_interface fixture",
+]

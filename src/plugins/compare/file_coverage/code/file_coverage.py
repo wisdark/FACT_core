@@ -1,13 +1,16 @@
+from __future__ import annotations
+
 from itertools import combinations
-from typing import Dict, List, Set, Tuple
 
 import networkx
 import ssdeep
 
 from compare.PluginBase import CompareBasePlugin
+from config import cfg
 from helperFunctions.compare_sets import iter_element_and_rest, remove_duplicates_from_list
 from helperFunctions.data_conversion import convert_uid_list_to_compare_id
 from objects.file import FileObject
+from objects.firmware import Firmware
 
 
 class ComparePlugin(CompareBasePlugin):
@@ -21,7 +24,7 @@ class ComparePlugin(CompareBasePlugin):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.ssdeep_ignore_threshold = self.config.getint('expert-settings', 'ssdeep-ignore')
+        self.ssdeep_ignore_threshold = cfg.expert_settings.ssdeep_ignore
 
     def compare_function(self, fo_list):
         compare_result = {
@@ -38,9 +41,14 @@ class ComparePlugin(CompareBasePlugin):
         similar_files, similarity = self._get_similar_files(fo_list, compare_result['exclusive_files'])
         compare_result['similar_files'] = self.combine_similarity_results(similar_files, fo_list, similarity)
 
+        if len(fo_list) == 2 and all(isinstance(fo, Firmware) for fo in fo_list):
+            compare_result['changed_text_files'] = self._find_changed_text_files(
+                fo_list, compare_result['files_in_common']['all']
+            )
+
         return compare_result
 
-    def _get_exclusive_files(self, fo_list: List[FileObject]) -> Dict[str, List[str]]:
+    def _get_exclusive_files(self, fo_list: list[FileObject]) -> dict[str, list[str]]:
         result = {}
         for current_element, other_elements in iter_element_and_rest(fo_list):
             exclusive_files = set.difference(
@@ -49,12 +57,12 @@ class ComparePlugin(CompareBasePlugin):
             result[current_element.uid] = list(exclusive_files)
         return result
 
-    def _get_intersection_of_files(self, fo_list: List[FileObject]) -> Dict[str, List[str]]:
+    def _get_intersection_of_files(self, fo_list: list[FileObject]) -> dict[str, list[str]]:
         intersection_of_files = set.intersection(*self._get_included_file_sets(fo_list))
         return {'all': list(intersection_of_files)}
 
     @staticmethod
-    def _get_included_file_sets(fo_list: List[FileObject]) -> List[Set[str]]:
+    def _get_included_file_sets(fo_list: list[FileObject]) -> list[set[str]]:
         return [set(file_object.list_of_all_included_files) for file_object in fo_list]
 
     def _handle_partially_common_files(self, compare_result, fo_list):
@@ -85,8 +93,8 @@ class ComparePlugin(CompareBasePlugin):
     # ---- SSDEEP similarity ---- #
 
     def _get_similar_files(
-        self, fo_list: List[FileObject], exclusive_files: Dict[str, List[str]]
-    ) -> Tuple[List[list], dict]:
+        self, fo_list: list[FileObject], exclusive_files: dict[str, list[str]]
+    ) -> tuple[list[list], dict]:
         similar_files = []
         similarity = {}
         for parent_one, parent_two in combinations(fo_list, 2):
@@ -108,7 +116,7 @@ class ComparePlugin(CompareBasePlugin):
                 if hash_two and ssdeep_similarity > self.ssdeep_ignore_threshold:
                     yield (id1, id2), ssdeep_similarity
 
-    def combine_similarity_results(self, similar_files: List[List[str]], fo_list: List[FileObject], similarity: dict):
+    def combine_similarity_results(self, similar_files: list[list[str]], fo_list: list[FileObject], similarity: dict):
         result_dict = {}
         for group_of_similar_files in similar_files:
             match_dict = {fo.uid: None for fo in fo_list}
@@ -120,7 +128,7 @@ class ComparePlugin(CompareBasePlugin):
         return result_dict
 
     @staticmethod
-    def _get_similarity_value(group_of_similar_files: List[str], similarity_dict: Dict[str, str]) -> str:
+    def _get_similarity_value(group_of_similar_files: list[str], similarity_dict: dict[str, str]) -> str:
         similarities_list = []
         for id_tuple in combinations(group_of_similar_files, 2):
             similar_file_pair_id = convert_uid_list_to_compare_id(id_tuple)
@@ -138,7 +146,7 @@ class ComparePlugin(CompareBasePlugin):
         return f'{parent_uid}:{file_uid}'
 
     @staticmethod
-    def _get_similar_file_group_id(similar_file_group: List[str]) -> str:
+    def _get_similar_file_group_id(similar_file_group: list[str]) -> str:
         group_id = ''
         for similar_file_id in similar_file_group:
             parent_uid, file_uid = similar_file_id.split(':')
@@ -164,8 +172,30 @@ class ComparePlugin(CompareBasePlugin):
         if non_zero_file_ids:
             new_result[firmware_uid] = non_zero_file_ids
 
+    def _find_changed_text_files(
+        self, fo_list: list[FileObject], common_files: list[str]
+    ) -> dict[str, list[tuple[str, str]]]:
+        """
+        Find text files that have the same path but different content for the file objects that are compared. The idea
+        is to find config files that were changed between different versions of a firmware. Only works if two firmware
+        objects are compared (and returns an empty result otherwise).
+        :param fo_list: the list of compared file objects
+        :param common_files: list of UIDs that are in both file objects
+        :return: a dict with paths as keys and a list of UID pairs (tuples) as values
+        """
+        changed_text_files = {}
+        vfp_a = self.database.get_vfp_of_included_text_files(fo_list[0].uid, blacklist=common_files)
+        vfp_b = self.database.get_vfp_of_included_text_files(fo_list[1].uid, blacklist=common_files)
+        for common_path in set(vfp_a).intersection(set(vfp_b)):
+            # vfp_x[common_path] should usually contain only 1 element (except if there are multiple files with the same
+            # path, e.g. if the FW contains multiple file systems, in which case all combinations are added)
+            for uid_1 in vfp_a[common_path]:
+                for uid_2 in vfp_b[common_path]:
+                    changed_text_files.setdefault(common_path, []).append((uid_1, uid_2))
+        return changed_text_files
 
-def generate_similarity_sets(list_of_pairs: List[Tuple[str, str]]) -> List[List[str]]:
+
+def generate_similarity_sets(list_of_pairs: list[tuple[str, str]]) -> list[list[str]]:
     graph = networkx.Graph()
     for file1, file2 in list_of_pairs:
         graph.add_edge(file1, file2)

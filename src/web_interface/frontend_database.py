@@ -1,5 +1,4 @@
-from configparser import ConfigParser
-from typing import Optional, Type
+from __future__ import annotations
 
 from storage.db_connection import AdminConnection, ReadOnlyConnection, ReadWriteConnection, ReadWriteDeleteConnection
 from storage.db_interface_admin import AdminDbInterface
@@ -13,20 +12,18 @@ from storage.db_interface_view_sync import ViewReader
 class FrontendDatabase:  # pylint: disable=too-many-instance-attributes
     def __init__(  # pylint: disable=too-many-arguments
         self,
-        config: ConfigParser,
-        frontend: Optional[Type[FrontEndDbInterface]] = None,
-        editing: Optional[Type[FrontendEditingDbInterface]] = None,
-        admin: Optional[Type[AdminDbInterface]] = None,
-        comparison: Optional[Type[ComparisonDbInterface]] = None,
-        template: Optional[Type[ViewReader]] = None,
-        stats_viewer: Optional[Type[StatsDbViewer]] = None,
-        stats_updater: Optional[Type[StatsUpdateDbInterface]] = None,
+        frontend: type[FrontEndDbInterface] | None = None,
+        editing: type[FrontendEditingDbInterface] | None = None,
+        admin: type[AdminDbInterface] | None = None,
+        comparison: type[ComparisonDbInterface] | None = None,
+        template: type[ViewReader] | None = None,
+        stats_viewer: type[StatsDbViewer] | None = None,
+        stats_updater: type[StatsUpdateDbInterface] | None = None,
     ):
-        self.config = config
-        self._ro_connection = ReadOnlyConnection(config)
-        self._rw_connection = ReadWriteConnection(config)
-        self._del_connection = ReadWriteDeleteConnection(config)
-        self._admin_connection = AdminConnection(config)
+        self._ro_connection = ReadOnlyConnection()
+        self._rw_connection = ReadWriteConnection()
+        self._del_connection = ReadWriteDeleteConnection()
+        self._admin_connection = AdminConnection()
 
         self._frontend = frontend if frontend is not None else FrontEndDbInterface
         self._editing = editing if editing is not None else FrontendEditingDbInterface
@@ -38,28 +35,28 @@ class FrontendDatabase:  # pylint: disable=too-many-instance-attributes
 
     @property
     def frontend(self) -> FrontEndDbInterface:
-        return self._frontend(self.config, self._ro_connection)
+        return self._frontend(self._ro_connection)
 
     @property
     def editing(self) -> FrontendEditingDbInterface:
-        return self._editing(self.config, self._rw_connection)
+        return self._editing(self._rw_connection)
 
     @property
     def admin(self) -> AdminDbInterface:
-        return self._admin(self.config, self._del_connection)
+        return self._admin(self._del_connection)
 
     @property
     def comparison(self) -> ComparisonDbInterface:
-        return self._comparison(self.config, self._rw_connection)
+        return self._comparison(self._rw_connection)
 
     @property
     def template(self) -> ViewReader:
-        return self._template(self.config, self._ro_connection)
+        return self._template(self._ro_connection)
 
     @property
     def stats_viewer(self) -> StatsDbViewer:
-        return self._stats_viewer(self.config, self._ro_connection)
+        return self._stats_viewer(self._ro_connection)
 
     @property
     def stats_updater(self) -> StatsUpdateDbInterface:
-        return self._stats_updater(self.config, self._rw_connection)
+        return self._stats_updater(self._rw_connection)

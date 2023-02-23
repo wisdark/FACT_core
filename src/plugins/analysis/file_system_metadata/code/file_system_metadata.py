@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 import stat
@@ -6,11 +8,12 @@ import zlib
 from base64 import b64encode
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, NamedTuple, Tuple
+from typing import NamedTuple
 
 from docker.types import Mount
 
 from analysis.PluginBase import AnalysisBasePlugin
+from config import cfg
 from helperFunctions.docker import run_docker_container
 from helperFunctions.tag import TagColor
 from helperFunctions.virtual_file_path import get_parent_uids_from_virtual_path
@@ -54,10 +57,10 @@ class AnalysisPlugin(AnalysisBasePlugin):
         'filesystem/squashfs',
     ]
 
-    def __init__(self, *args, config=None, db_interface=None, **kwargs):
-        self.db = db_interface if db_interface is not None else DbInterfaceCommon(config=config)
+    def __init__(self, *args, **kwargs):
+        self.db = DbInterfaceCommon()
         self.result = None
-        super().__init__(*args, config=config, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def process_object(self, file_object: FileObject) -> FileObject:
         self.result = {}
@@ -99,7 +102,7 @@ class AnalysisPlugin(AnalysisBasePlugin):
             self._add_tag(file_object, self.result)
 
     def _extract_metadata_from_file_system(self, file_object: FileObject):
-        with TemporaryDirectory(dir=self.config['data-storage']['docker-mount-base-dir']) as tmp_dir:
+        with TemporaryDirectory(dir=cfg.data_storage.docker_mount_base_dir) as tmp_dir:
             input_file = Path(tmp_dir) / 'input.img'
             input_file.write_bytes(file_object.binary or Path(file_object.file_path).read_bytes())
             output = self._mount_in_docker(tmp_dir)
@@ -125,7 +128,7 @@ class AnalysisPlugin(AnalysisBasePlugin):
 
         return result.stdout
 
-    def _analyze_metadata_of_mounted_dir(self, docker_results: Tuple[str, str, dict]):
+    def _analyze_metadata_of_mounted_dir(self, docker_results: tuple[str, str, dict]):
         for file_name, file_path, file_stats in docker_results:
             self._enter_results_for_mounted_file(file_name, file_path, StatResult(**file_stats))
 
@@ -173,7 +176,7 @@ class AnalysisPlugin(AnalysisBasePlugin):
         )
 
     @staticmethod
-    def _get_extended_file_permissions(file_mode: str) -> List[bool]:
+    def _get_extended_file_permissions(file_mode: str) -> list[bool]:
         extended_file_permission_bits = f'{int(file_mode[-4]):03b}' if len(file_mode) > 3 else '000'
         return [b == '1' for b in extended_file_permission_bits]
 

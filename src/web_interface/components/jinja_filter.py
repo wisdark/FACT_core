@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import json
 import logging
-from typing import List, Optional
 
 from common_helper_filter.time import time_format
 from flask import render_template
 
 import web_interface.filter as flt
+from config import cfg
 from helperFunctions.data_conversion import none_to_none
 from helperFunctions.database import get_shared_session
 from helperFunctions.hash import get_md5
@@ -22,10 +24,9 @@ class FilterClass:
     This is WEB front end main class
     '''
 
-    def __init__(self, app, program_version, config, db: FrontendDatabase, **_):
+    def __init__(self, app, program_version, db: FrontendDatabase, **_):
         self._program_version = program_version
         self._app = app
-        self._config = config
         self.db = db
 
         self._setup_filters()
@@ -86,7 +87,7 @@ class FilterClass:
             filename_only=filename_only,
         )
 
-    def _nice_virtual_path_list(self, virtual_path_list: List[str]) -> List[str]:
+    def _nice_virtual_path_list(self, virtual_path_list: list[str]) -> list[str]:
         path_list = []
         for virtual_path in virtual_path_list:
             uid_list = split_virtual_path(virtual_path)
@@ -140,9 +141,9 @@ class FilterClass:
         return new_result
 
     def check_auth(self, _):
-        return self._config.getboolean('expert-settings', 'authentication')
+        return cfg.expert_settings.authentication
 
-    def data_to_chart_limited(self, data, limit: Optional[int] = None, color_list=None):
+    def data_to_chart_limited(self, data, limit: int | None = None, color_list=None):
         limit = self._get_chart_element_count() if limit is None else limit
         try:
             label_list, value_list = (list(d) for d in zip(*data))
@@ -156,7 +157,7 @@ class FilterClass:
         }
 
     def _get_chart_element_count(self):
-        limit = self._config.getint('statistics', 'max-elements-per-chart', fallback=10)
+        limit = cfg.statistics.max_elements_per_chart
         if limit > 100:
             logging.warning('Value of "max_elements_per_chart" in configuration is too large.')
             return 100

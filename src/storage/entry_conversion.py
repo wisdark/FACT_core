@@ -1,6 +1,8 @@
+from __future__ import annotations
+
+import logging
 from datetime import datetime
 from time import time
-from typing import List, Optional, Set
 
 from helperFunctions.data_conversion import convert_time_to_str
 from objects.file import FileObject
@@ -10,7 +12,7 @@ from storage.schema import AnalysisEntry, FileObjectEntry, FirmwareEntry
 META_KEYS = {'tags', 'summary', 'analysis_date', 'plugin_version', 'system_version', 'file_system_flag'}
 
 
-def firmware_from_entry(fw_entry: FirmwareEntry, analysis_filter: Optional[List[str]] = None) -> Firmware:
+def firmware_from_entry(fw_entry: FirmwareEntry, analysis_filter: list[str] | None = None) -> Firmware:
     firmware = Firmware()
     _populate_fo_data(fw_entry.root_object, firmware, analysis_filter)
     firmware.device_name = fw_entry.device_name
@@ -25,9 +27,9 @@ def firmware_from_entry(fw_entry: FirmwareEntry, analysis_filter: Optional[List[
 
 def file_object_from_entry(
     fo_entry: FileObjectEntry,
-    analysis_filter: Optional[List[str]] = None,
-    included_files: Optional[Set[str]] = None,
-    parents: Optional[Set[str]] = None,
+    analysis_filter: list[str] | None = None,
+    included_files: set[str] | None = None,
+    parents: set[str] | None = None,
 ) -> FileObject:
     file_object = FileObject()
     _populate_fo_data(fo_entry, file_object, analysis_filter, included_files, parents)
@@ -37,9 +39,9 @@ def file_object_from_entry(
 def _populate_fo_data(
     fo_entry: FileObjectEntry,
     file_object: FileObject,
-    analysis_filter: Optional[List[str]] = None,
-    included_files: Optional[Set[str]] = None,
-    parents: Optional[Set[str]] = None,
+    analysis_filter: list[str] | None = None,
+    included_files: set[str] | None = None,
+    parents: set[str] | None = None,
 ):
     file_object.uid = fo_entry.uid
     file_object.size = fo_entry.size
@@ -114,6 +116,12 @@ def _sanitize_value(analysis_data: dict, key: str, value):
         analysis_data[key] = value.replace('\0', '')
     elif isinstance(value, list):
         _sanitize_list(value)
+    elif isinstance(value, bytes):
+        logging.warning(
+            f'Plugin result contains bytes entry. '
+            f'Plugin results should only contain JSON compatible data structures!:\n\t{repr(value)}'
+        )
+        analysis_data[key] = value.decode(errors='replace')
 
 
 def _sanitize_key(analysis_data: dict, key: str):
@@ -130,7 +138,7 @@ def _sanitize_list(value: list) -> list:
     return value
 
 
-def create_analysis_entries(file_object: FileObject, fo_backref: FileObjectEntry) -> List[AnalysisEntry]:
+def create_analysis_entries(file_object: FileObject, fo_backref: FileObjectEntry) -> list[AnalysisEntry]:
     return [
         AnalysisEntry(
             uid=file_object.uid,

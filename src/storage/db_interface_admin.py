@@ -1,17 +1,18 @@
+from __future__ import annotations
+
 import logging
-from typing import Optional, Set, Tuple
 
 from intercom.front_end_binding import InterComFrontEndBinding
 from storage.db_connection import DbConnection, ReadWriteDeleteConnection
 from storage.db_interface_base import ReadWriteDbInterface
 from storage.db_interface_common import DbInterfaceCommon
-from storage.schema import FileObjectEntry
+from storage.schema import ComparisonEntry, FileObjectEntry
 
 
 class AdminDbInterface(DbInterfaceCommon, ReadWriteDbInterface):
-    def __init__(self, config, connection: Optional[DbConnection] = None, intercom=None):
-        self.intercom = InterComFrontEndBinding(config=config) if intercom is None else intercom
-        super().__init__(config, connection=connection or ReadWriteDeleteConnection(config))
+    def __init__(self, connection: DbConnection | None = None, intercom=None):
+        self.intercom = InterComFrontEndBinding() if intercom is None else intercom
+        super().__init__(connection=connection or ReadWriteDeleteConnection())
 
     # ===== Delete / DELETE =====
 
@@ -39,7 +40,15 @@ class AdminDbInterface(DbInterfaceCommon, ReadWriteDbInterface):
         self.intercom.delete_file(list(uids_to_delete))
         return removed_fp, len(uids_to_delete)
 
-    def _remove_virtual_path_entries(self, root_uid: str, fo_uid: str, session) -> Tuple[int, Set[str]]:
+    def delete_comparison(self, comparison_id: str):
+        try:
+            with self.get_read_write_session() as session:
+                session.delete(session.get(ComparisonEntry, comparison_id))
+            logging.debug(f'Old comparison deleted: {comparison_id}')
+        except Exception as exception:
+            logging.warning(f'Could not delete comparison {comparison_id}: {exception}', exc_info=True)
+
+    def _remove_virtual_path_entries(self, root_uid: str, fo_uid: str, session) -> tuple[int, set[str]]:
         '''
         Recursively checks if the provided root_uid is the only entry in the virtual path of the file object belonging
         to fo_uid. If this is the case, the file object is deleted from the database. Otherwise, only the entry from
