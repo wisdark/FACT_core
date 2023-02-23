@@ -15,7 +15,9 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -52,9 +54,11 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Modules:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="config.html">config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conftest.html">conftest</a></li>
+<li class="toctree-l1"><a class="reference internal" href="test.html">test</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="helperFunctions.html">helperFunctions</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.compare_sets.html">helperFunctions.compare_sets module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="helperFunctions.config.html">helperFunctions.config module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.data_conversion.html">helperFunctions.data_conversion module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.database.html">helperFunctions.database module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.docker.html">helperFunctions.docker module</a></li>
@@ -66,7 +70,21 @@
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.object_conversion.html">helperFunctions.object_conversion module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.pdf.html">helperFunctions.pdf module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.plugin.html">helperFunctions.plugin module</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">helperFunctions.process module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">helperFunctions.process module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#helperFunctions.process.ExceptionSafeProcess"><code class="docutils literal notranslate"><span class="pre">ExceptionSafeProcess</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#helperFunctions.process.ExceptionSafeProcess.exception"><code class="docutils literal notranslate"><span class="pre">ExceptionSafeProcess.exception</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#helperFunctions.process.ExceptionSafeProcess.run"><code class="docutils literal notranslate"><span class="pre">ExceptionSafeProcess.run()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#helperFunctions.process.check_worker_exceptions"><code class="docutils literal notranslate"><span class="pre">check_worker_exceptions()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#helperFunctions.process.complete_shutdown"><code class="docutils literal notranslate"><span class="pre">complete_shutdown()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#helperFunctions.process.new_worker_was_started"><code class="docutils literal notranslate"><span class="pre">new_worker_was_started()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#helperFunctions.process.start_single_worker"><code class="docutils literal notranslate"><span class="pre">start_single_worker()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#helperFunctions.process.stop_process"><code class="docutils literal notranslate"><span class="pre">stop_process()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#helperFunctions.process.stop_processes"><code class="docutils literal notranslate"><span class="pre">stop_processes()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#helperFunctions.process.terminate_process_and_children"><code class="docutils literal notranslate"><span class="pre">terminate_process_and_children()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.program_setup.html">helperFunctions.program_setup module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.tag.html">helperFunctions.tag module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.task_conversion.html">helperFunctions.task_conversion module</a></li>
@@ -77,6 +95,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="objects.html">objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="plugins.html">plugins</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scheduler.html">scheduler</a></li>
 <li class="toctree-l1"><a class="reference internal" href="web_interface.html">web_interface</a></li>
 </ul>
@@ -107,11 +126,11 @@
            <div itemprop="articleBody">
              
   <section id="module-helperFunctions.process">
-<span id="helperfunctions-process-module"></span><h1>helperFunctions.process module<a class="headerlink" href="#module-helperFunctions.process" title="Permalink to this headline"></a></h1>
+<span id="helperfunctions-process-module"></span><h1>helperFunctions.process module<a class="headerlink" href="#module-helperFunctions.process" title="Permalink to this heading"></a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="helperFunctions.process.ExceptionSafeProcess">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">helperFunctions.process.</span></span><span class="sig-name descname"><span class="pre">ExceptionSafeProcess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#helperFunctions.process.ExceptionSafeProcess" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">multiprocessing.context.Process</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Process</span></code></p>
 <p>ExceptionSafeProcess is a subtype of <code class="docutils literal notranslate"><span class="pre">multiprocessing.Process</span></code> with added exception handling.
 Opposed to what the name may suggest, the class does not make the process impervious to exceptions.
 Instead, it retrieves the exception of the subprocess and re-raises it. This allows reconstructing what
@@ -120,7 +139,7 @@ happened in the subprocess.</p>
 (see <a class="reference external" href="https://docs.python.org/3/library/multiprocessing.html#multiprocessing.Process">Python docs</a>).</p>
 <dl class="py property">
 <dt class="sig sig-object py" id="helperFunctions.process.ExceptionSafeProcess.exception">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">exception</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Exception</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#helperFunctions.process.ExceptionSafeProcess.exception" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">exception</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Exception</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#helperFunctions.process.ExceptionSafeProcess.exception" title="Permalink to this definition"></a></dt>
 <dd><p>The exception that occurred in the process during execution and the respective stack trace.
 Is <code class="docutils literal notranslate"><span class="pre">None</span></code> if no exception occurred or the process was no yet executed.</p>
 <dl class="field-list simple">
@@ -141,7 +160,7 @@ be retrieved by accessing <code class="docutils literal notranslate"><span class
 
 <dl class="py function">
 <dt class="sig sig-object py" id="helperFunctions.process.check_worker_exceptions">
-<span class="sig-prename descclassname"><span class="pre">helperFunctions.process.</span></span><span class="sig-name descname"><span class="pre">check_worker_exceptions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">process_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">worker_label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">worker_function</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#helperFunctions.process.check_worker_exceptions" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">helperFunctions.process.</span></span><span class="sig-name descname"><span class="pre">check_worker_exceptions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">process_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">worker_label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">worker_function</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#helperFunctions.process.check_worker_exceptions" title="Permalink to this definition"></a></dt>
 <dd><p>Iterate over the <cite>process_list</cite> and check if exceptions occurred. In case of an exception, the process and its
 children will be terminated. If <code class="docutils literal notranslate"><span class="pre">throw_exceptions</span></code> in the FACT configuration is set to <cite>false</cite>, the worker
 may be restarted by passing a function (if the value is not set, the worker will not be restarted). In this case,
@@ -150,10 +169,9 @@ the worker will not be restarted and the return value is <code class="docutils l
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>process_list</strong> (<em>List</em><em>[</em><a class="reference internal" href="#helperFunctions.process.ExceptionSafeProcess" title="helperFunctions.process.ExceptionSafeProcess"><em>helperFunctions.process.ExceptionSafeProcess</em></a><em>]</em>) – A list of worker processes.</p></li>
+<li><p><strong>process_list</strong> (<em>list</em><em>[</em><a class="reference internal" href="#helperFunctions.process.ExceptionSafeProcess" title="helperFunctions.process.ExceptionSafeProcess"><em>ExceptionSafeProcess</em></a><em>]</em>) – A list of worker processes.</p></li>
 <li><p><strong>worker_label</strong> (<em>str</em>) – A label used for logging (e.g. <cite>Analysis</cite> or <cite>Unpacking</cite>).</p></li>
-<li><p><strong>config</strong> (<em>Optional</em><em>[</em><em>configparser.ConfigParser</em><em>]</em>) – An instance of the FACT configuration.</p></li>
-<li><p><strong>worker_function</strong> (<em>Optional</em><em>[</em><em>Callable</em><em>]</em>) – A function used for restarting the worker (optional).</p></li>
+<li><p><strong>worker_function</strong> (<em>Callable</em><em> | </em><em>None</em>) – A function used for restarting the worker (optional).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -172,7 +190,7 @@ set to <cite>true</cite> and <code class="docutils literal notranslate"><span cl
 <dd><p>Shutdown all FACT processes (of the currently running component) by sending a signal to the process group.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>message</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – Optional message to be displayed before the shutdown.</p>
+<dd class="field-odd"><p><strong>message</strong> (<em>str</em><em> | </em><em>None</em>) – Optional message to be displayed before the shutdown.</p>
 </dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p>None</p>
@@ -187,8 +205,8 @@ set to <cite>true</cite> and <code class="docutils literal notranslate"><span cl
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>new_process</strong> (<a class="reference internal" href="#helperFunctions.process.ExceptionSafeProcess" title="helperFunctions.process.ExceptionSafeProcess"><em>helperFunctions.process.ExceptionSafeProcess</em></a>) – The new process.</p></li>
-<li><p><strong>old_process</strong> (<a class="reference internal" href="#helperFunctions.process.ExceptionSafeProcess" title="helperFunctions.process.ExceptionSafeProcess"><em>helperFunctions.process.ExceptionSafeProcess</em></a>) – The old process.</p></li>
+<li><p><strong>new_process</strong> (<a class="reference internal" href="#helperFunctions.process.ExceptionSafeProcess" title="helperFunctions.process.ExceptionSafeProcess"><em>ExceptionSafeProcess</em></a>) – The new process.</p></li>
+<li><p><strong>old_process</strong> (<a class="reference internal" href="#helperFunctions.process.ExceptionSafeProcess" title="helperFunctions.process.ExceptionSafeProcess"><em>ExceptionSafeProcess</em></a>) – The old process.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -217,7 +235,21 @@ FACT backend.</p>
 <dd class="field-even"><p>The running process.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="#helperFunctions.process.ExceptionSafeProcess" title="helperFunctions.process.ExceptionSafeProcess">helperFunctions.process.ExceptionSafeProcess</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#helperFunctions.process.ExceptionSafeProcess" title="helperFunctions.process.ExceptionSafeProcess"><em>ExceptionSafeProcess</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="helperFunctions.process.stop_process">
+<span class="sig-prename descclassname"><span class="pre">helperFunctions.process.</span></span><span class="sig-name descname"><span class="pre">stop_process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">process</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#helperFunctions.process.stop_process" title="Permalink to this definition"></a></dt>
+<dd><p>Try to stop a single process gracefully. If it does not stop until <cite>timeout</cite> is reached, kill it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>process</strong> (<em>Process</em>) – </p></li>
+<li><p><strong>timeout</strong> (<em>float</em>) – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -225,11 +257,11 @@ FACT backend.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="helperFunctions.process.stop_processes">
 <span class="sig-prename descclassname"><span class="pre">helperFunctions.process.</span></span><span class="sig-name descname"><span class="pre">stop_processes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">processes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#helperFunctions.process.stop_processes" title="Permalink to this definition"></a></dt>
-<dd><p>Try to stop processes gracefully. If a process does not stop until <cite>timeout</cite> is reached, terminate it.</p>
+<dd><p>Try to stop processes gracefully in parallel. If a process does not stop until <cite>timeout</cite> is reached, kill it.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>processes</strong> (<em>List</em><em>[</em><em>multiprocessing.context.Process</em><em>]</em>) – The list of processes that should be stopped.</p></li>
+<li><p><strong>processes</strong> (<em>list</em><em>[</em><em>Process</em><em>]</em>) – The list of processes that should be stopped.</p></li>
 <li><p><strong>timeout</strong> (<em>float</em>) – Timeout for joining the process in seconds.</p></li>
 </ul>
 </dd>
@@ -242,7 +274,7 @@ FACT backend.</p>
 <dd><p>Terminate a process and all of its child processes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>process</strong> (<em>multiprocessing.context.Process</em>) – The process to be terminated.</p>
+<dd class="field-odd"><p><strong>process</strong> (<em>Process</em>) – The process to be terminated.</p>
 </dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p>None</p>
@@ -263,7 +295,7 @@ FACT backend.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2020-2022  Fraunhofer FKIE.</p>
+    <p>&#169; Copyright 2020-2023  Fraunhofer FKIE.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

@@ -15,12 +15,14 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="helperFunctions.database module" href="helperFunctions.database.html" />
-    <link rel="prev" title="helperFunctions.config module" href="helperFunctions.config.html" /> 
+    <link rel="prev" title="helperFunctions.compare_sets module" href="helperFunctions.compare_sets.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -52,10 +54,23 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Modules:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="config.html">config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conftest.html">conftest</a></li>
+<li class="toctree-l1"><a class="reference internal" href="test.html">test</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="helperFunctions.html">helperFunctions</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.compare_sets.html">helperFunctions.compare_sets module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="helperFunctions.config.html">helperFunctions.config module</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">helperFunctions.data_conversion module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">helperFunctions.data_conversion module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#helperFunctions.data_conversion.convert_compare_id_to_list"><code class="docutils literal notranslate"><span class="pre">convert_compare_id_to_list()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#helperFunctions.data_conversion.convert_str_to_bool"><code class="docutils literal notranslate"><span class="pre">convert_str_to_bool()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#helperFunctions.data_conversion.convert_time_to_str"><code class="docutils literal notranslate"><span class="pre">convert_time_to_str()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#helperFunctions.data_conversion.convert_uid_list_to_compare_id"><code class="docutils literal notranslate"><span class="pre">convert_uid_list_to_compare_id()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#helperFunctions.data_conversion.get_value_of_first_key"><code class="docutils literal notranslate"><span class="pre">get_value_of_first_key()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#helperFunctions.data_conversion.make_bytes"><code class="docutils literal notranslate"><span class="pre">make_bytes()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#helperFunctions.data_conversion.make_unicode_string"><code class="docutils literal notranslate"><span class="pre">make_unicode_string()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#helperFunctions.data_conversion.none_to_none"><code class="docutils literal notranslate"><span class="pre">none_to_none()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#helperFunctions.data_conversion.normalize_compare_id"><code class="docutils literal notranslate"><span class="pre">normalize_compare_id()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.database.html">helperFunctions.database module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.docker.html">helperFunctions.docker module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.fileSystem.html">helperFunctions.fileSystem module</a></li>
@@ -77,6 +92,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="objects.html">objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="plugins.html">plugins</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scheduler.html">scheduler</a></li>
 <li class="toctree-l1"><a class="reference internal" href="web_interface.html">web_interface</a></li>
 </ul>
@@ -107,7 +123,7 @@
            <div itemprop="articleBody">
              
   <section id="module-helperFunctions.data_conversion">
-<span id="helperfunctions-data-conversion-module"></span><h1>helperFunctions.data_conversion module<a class="headerlink" href="#module-helperFunctions.data_conversion" title="Permalink to this headline"></a></h1>
+<span id="helperfunctions-data-conversion-module"></span><h1>helperFunctions.data_conversion module<a class="headerlink" href="#module-helperFunctions.data_conversion" title="Permalink to this heading"></a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="helperFunctions.data_conversion.convert_compare_id_to_list">
 <span class="sig-prename descclassname"><span class="pre">helperFunctions.data_conversion.</span></span><span class="sig-name descname"><span class="pre">convert_compare_id_to_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">compare_id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#helperFunctions.data_conversion.convert_compare_id_to_list" title="Permalink to this definition"></a></dt>
@@ -120,7 +136,7 @@
 <dd class="field-even"><p>The according UID list.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><em>List</em>[str]</p>
+<dd class="field-odd"><p>list[str]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -182,13 +198,13 @@ to identify a FACT <cite>Firmware</cite> or <cite>FileObject</cite> comparison).
 <dd><p>Get the value of the first key in a dictionary. If the dict is empty, return <cite>None</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>input_dict</strong> (<em>Dict</em><em>[</em><em>helperFunctions.data_conversion._KT</em><em>, </em><em>helperFunctions.data_conversion._VT</em><em>]</em>) – The dictionary to get the value from.</p>
+<dd class="field-odd"><p><strong>input_dict</strong> (<em>dict</em><em>[</em><em>_KT</em><em>, </em><em>_VT</em><em>]</em>) – The dictionary to get the value from.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The value of the first key in the dictionary or <cite>None</cite> if it is empty.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><em>Optional</em>[helperFunctions.data_conversion._VT]</p>
+<dd class="field-odd"><p>_VT | None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -199,7 +215,7 @@ to identify a FACT <cite>Firmware</cite> or <cite>FileObject</cite> comparison).
 <dd><p>Convert <cite>data</cite> into bytes (if necessary).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>data</strong> (<em>Union</em><em>[</em><em>AnyStr</em><em>, </em><em>List</em><em>[</em><em>int</em><em>]</em><em>]</em>) – Some sort of data that can be converted to bytes.</p>
+<dd class="field-odd"><p><strong>data</strong> (<em>AnyStr</em><em> | </em><em>list</em><em>[</em><em>int</em><em>]</em>) – Some sort of data that can be converted to bytes.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The data as bytes.</p>
@@ -231,10 +247,10 @@ to identify a FACT <cite>Firmware</cite> or <cite>FileObject</cite> comparison).
 Used to convert a string coming from the web interface to a NoneType object if necessary.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>input_data</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – A string that may</p>
+<dd class="field-odd"><p><strong>input_data</strong> (<em>str</em><em> | </em><em>None</em>) – A string that may</p>
 </dd>
 <dt class="field-even">Return type</dt>
-<dd class="field-even"><p><em>Optional</em>[str]</p>
+<dd class="field-even"><p>str | None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -262,14 +278,14 @@ Used to convert a string coming from the web interface to a NoneType object if n
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="helperFunctions.config.html" class="btn btn-neutral float-left" title="helperFunctions.config module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="helperFunctions.compare_sets.html" class="btn btn-neutral float-left" title="helperFunctions.compare_sets module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="helperFunctions.database.html" class="btn btn-neutral float-right" title="helperFunctions.database module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2020-2022  Fraunhofer FKIE.</p>
+    <p>&#169; Copyright 2020-2023  Fraunhofer FKIE.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
