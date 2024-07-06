@@ -7,17 +7,17 @@ from tempfile import TemporaryDirectory
 
 from common_helper_files import get_binary_from_file
 
-from config import cfg
+import config
 from unpacker.unpack_base import UnpackBase
 
 
 class TarRepack(UnpackBase):
     def tar_repack(self, file_path):
-        extraction_directory = TemporaryDirectory(prefix='FACT_tar_repack', dir=cfg.data_storage.docker_mount_base_dir)
+        extraction_directory = TemporaryDirectory(prefix='FACT_tar_repack', dir=config.backend.docker_mount_base_dir)
         self.extract_files_from_file(file_path, extraction_directory.name)
 
-        archive_directory = TemporaryDirectory(prefix='FACT_tar_repack', dir=cfg.data_storage.temp_dir_path)
-        archive_path = os.path.join(archive_directory.name, 'download.tar.gz')
+        archive_directory = TemporaryDirectory(prefix='FACT_tar_repack', dir=config.backend.temp_dir_path)
+        archive_path = os.path.join(archive_directory.name, 'download.tar.gz')  # noqa: PTH118
         tar_binary = self._repack_extracted_files(Path(extraction_directory.name, 'files'), archive_path)
 
         extraction_directory.cleanup()
@@ -28,7 +28,7 @@ class TarRepack(UnpackBase):
     @staticmethod
     def _repack_extracted_files(extraction_dir: Path, out_file_path: str) -> bytes:
         tar_process = subprocess.run(
-            f'tar -C {extraction_dir} -cvzf {out_file_path} .', shell=True, stdout=PIPE, stderr=STDOUT
+            f'tar -C {extraction_dir} -cvzf {out_file_path} .', shell=True, stdout=PIPE, stderr=STDOUT, check=False
         )
         logging.debug(f'tar -cvzf:\n {tar_process.stdout}')
         return get_binary_from_file(out_file_path)

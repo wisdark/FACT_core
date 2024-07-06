@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-from collections.abc import Callable
 from types import MethodType
-from typing import Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
-from web_interface.frontend_database import FrontendDatabase
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from intercom.front_end_binding import InterComFrontEndBinding
+    from storage.redis_status_interface import RedisStatusInterface
+    from web_interface.frontend_database import FrontendDatabase
 
 ROUTES_ATTRIBUTE = 'view_routes'
 
@@ -18,7 +22,7 @@ class Route(NamedTuple):
 
 
 class AppRoute:
-    '''
+    """
     A Decorator for web interface view functions that imitates the functionality of Flask's ``app.route()`` .
 
     :Example:
@@ -30,7 +34,7 @@ class AppRoute:
 
     :param rule: The endpoint route (e.g. "/about")
     :param methods: supported HTML Methods (e.g. ``'GET', 'POST'``)
-    '''
+    """
 
     def __init__(self, rule: str, *methods: str):
         self.route = Route(rule, methods)
@@ -43,11 +47,19 @@ class AppRoute:
 
 
 class ComponentBase:
-    def __init__(self, app, db: FrontendDatabase, intercom, api=None):
+    def __init__(
+        self,
+        app,
+        db: FrontendDatabase,
+        intercom: InterComFrontEndBinding,
+        status: RedisStatusInterface,
+        api=None,
+    ):
         self._app = app
         self._api = api
         self.db = db
         self.intercom = intercom
+        self.status = status
 
         self._init_component()
 

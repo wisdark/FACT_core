@@ -5,13 +5,14 @@ from contextlib import suppress
 from pathlib import Path
 from subprocess import PIPE, STDOUT
 
-from config import cfg
+import config
 from helperFunctions.install import (
     InstallationError,
     OperateInDirectory,
     apt_install_packages,
     dnf_install_packages,
     install_pip_packages,
+    is_virtualenv,
     read_package_list_from_file,
     run_cmd_with_logging,
 )
@@ -23,26 +24,31 @@ MIME_ICON_DIR = INSTALL_DIR.parent / 'web_interface' / 'static' / 'file_icons'
 ICON_THEME_INSTALL_PATH = Path('/usr/share/icons/Papirus/24x24')
 
 
-def execute_commands_and_raise_on_return_code(commands, error=None):  # pylint: disable=invalid-name
+def execute_commands_and_raise_on_return_code(commands, error=None):
     for command in commands:
         bad_return = error if error else f'execute {command}'
-        cmd_process = subprocess.run(command, shell=True, stdout=PIPE, stderr=STDOUT, text=True)
+        cmd_process = subprocess.run(command, shell=True, stdout=PIPE, stderr=STDOUT, text=True, check=False)
         if cmd_process.returncode != 0:
             raise InstallationError(f'Failed to {bad_return}\n{cmd_process.stdout}')
 
 
-def _create_directory_for_authentication():  # pylint: disable=invalid-name
+def _create_directory_for_authentication():
     logging.info('Creating directory for authentication')
 
-    dburi = cfg.data_storage.user_database
-    # pylint: disable=fixme
+    dburi = config.frontend.authentication.user_database
+
     factauthdir = '/'.join(dburi.split('/')[:-1])[10:]  # FIXME this should be beautified with pathlib
 
     mkdir_process = subprocess.run(
-        f'sudo mkdir -p --mode=0744 {factauthdir}', shell=True, stdout=PIPE, stderr=STDOUT, text=True
+        f'sudo mkdir -p --mode=0744 {factauthdir}', shell=True, stdout=PIPE, stderr=STDOUT, text=True, check=False
     )
     chown_process = subprocess.run(
-        f'sudo chown {os.getuid()}:{os.getgid()} {factauthdir}', shell=True, stdout=PIPE, stderr=STDOUT, text=True
+        f'sudo chown {os.getuid()}:{os.getgid()} {factauthdir}',
+        shell=True,
+        stdout=PIPE,
+        stderr=STDOUT,
+        text=True,
+        check=False,
     )
 
     if not all(return_code == 0 for return_code in [mkdir_process.returncode, chown_process.returncode]):
@@ -69,7 +75,7 @@ def _install_nginx(distribution):
             ],
             error='restore selinux context',
         )
-    nginx_process = subprocess.run('sudo nginx -s reload', shell=True, capture_output=True, text=True)
+    nginx_process = subprocess.run('sudo nginx -s reload', shell=True, capture_output=True, text=True, check=False)
     if nginx_process.returncode != 0:
         raise InstallationError(f'Failed to start nginx\n{nginx_process.stderr}')
 
@@ -96,7 +102,7 @@ def _configure_nginx():
             # copy is better on redhat to respect selinux context
             '(cd ../config && sudo install -m 644 $PWD/nginx.conf /etc/nginx/nginx.conf)',
             '(sudo mkdir /etc/nginx/error || true)',
-            '(cd ../web_interface/templates/ && sudo ln -s $PWD/maintenance.html /etc/nginx/error/maintenance.html) || true',
+            '(cd ../web_interface/templates/ && sudo ln -s $PWD/maintenance.html /etc/nginx/error/maintenance.html) || true',  # noqa: E501
         ],
         error='configuring nginx',
     )
@@ -108,7 +114,7 @@ def _install_docker_images(radare):
 
         with OperateInDirectory('radare'):
             docker_compose_process = subprocess.run(
-                'docker-compose build', shell=True, stdout=PIPE, stderr=STDOUT, text=True
+                'docker compose build', shell=True, stdout=PIPE, stderr=STDOUT, text=True, check=False
             )
             if docker_compose_process.returncode != 0:
                 raise InstallationError(f'Failed to initialize radare container:\n{docker_compose_process.stdout}')
@@ -116,7 +122,7 @@ def _install_docker_images(radare):
     # pull pdf report container
     logging.info('Pulling pdf report container')
     docker_process = subprocess.run(
-        'docker pull fkiecad/fact_pdf_report', shell=True, stdout=PIPE, stderr=STDOUT, text=True
+        'docker pull fkiecad/fact_pdf_report', shell=True, stdout=PIPE, stderr=STDOUT, text=True, check=False
     )
     if docker_process.returncode != 0:
         raise InstallationError(f'Failed to pull pdf report container:\n{docker_process.stdout}')
@@ -145,7 +151,9 @@ def main(skip_docker, radare, nginx, distribution):
 
     # flask-security is not maintained anymore and replaced by flask-security-too.
     # Since python package naming conflicts are not resolved automatically, we remove flask-security manually.
-    run_cmd_with_logging('sudo -EH pip3 uninstall -y flask-security')
+    pip = 'pip' if is_virtualenv() else 'sudo -EH pip3'
+    run_cmd_with_logging(f'{pip} uninstall -y flask-security')
+
     install_pip_packages(PIP_DEPENDENCIES)
 
     # npm does not allow us to install packages to a specific directory

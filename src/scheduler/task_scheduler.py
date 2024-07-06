@@ -3,10 +3,13 @@ from __future__ import annotations
 import logging
 from copy import copy
 from time import time
+from typing import TYPE_CHECKING
 
 from helperFunctions.merge_generators import shuffled
-from objects.file import FileObject
-from objects.firmware import Firmware
+
+if TYPE_CHECKING:
+    from objects.file import FileObject
+    from objects.firmware import Firmware
 
 MANDATORY_PLUGINS = ['file_type', 'file_hashes']
 
@@ -81,7 +84,7 @@ class AnalysisTaskScheduler:
 
     def _get_failed_analysis_result(self, cause: str, plugin: str) -> dict:
         return {
-            'failed': cause,
+            'result': {'failed': cause},
             'plugin_version': self.plugins[plugin].VERSION,
             'analysis_date': time(),
         }

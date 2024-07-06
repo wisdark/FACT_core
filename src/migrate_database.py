@@ -5,7 +5,6 @@ import sqlite3
 import uuid
 
 import config
-from config import cfg
 
 
 def upgrade(cur):
@@ -19,7 +18,7 @@ def upgrade(cur):
     # We can't use ALTER TABLE to change fs_uniquifier from beeing NULLable to
     # NOT NULL
     cur.execute(
-        '''
+        """
         CREATE TABLE "user_tmp" (
             "id"			INTEGER NOT NULL,
             "api_key"		VARCHAR(255) UNIQUE,
@@ -30,20 +29,20 @@ def upgrade(cur):
             "fs_uniquifier"	VARCHAR(64) NOT NULL UNIQUE,
             CHECK(active IN (0,1)),
             PRIMARY KEY("id")
-        );'''
+        );"""
     )
     cur.execute('INSERT INTO "user_tmp" SELECT * FROM "user" WHERE true')
     cur.execute('DROP TABLE "user"')
     cur.execute('ALTER TABLE "user_tmp" RENAME TO "user"')
 
-    print('Successfully upgraded the database')
+    print('Successfully upgraded the database')  # noqa: T201
 
 
 def downgrade(cur):
     # Due to limitations in SQLite we have to create a temporary table
     # We can't DROP COLUMN fs_uniquifier because it is unique
     cur.execute(
-        '''
+        """
         CREATE TABLE "user_tmp" (
             "id"			INTEGER NOT NULL,
             "api_key"		VARCHAR(255) UNIQUE,
@@ -53,7 +52,7 @@ def downgrade(cur):
             "confirmed_at"	DATETIME,
             CHECK(active IN (0,1)),
             PRIMARY KEY("id")
-        );'''
+        );"""
     )
     cur.execute(
         'INSERT INTO "user_tmp" SELECT id, api_key, email, password, active, confirmed_at FROM "user" WHERE true'
@@ -61,7 +60,7 @@ def downgrade(cur):
     cur.execute('DROP TABLE "user"')
     cur.execute('ALTER TABLE "user_tmp" RENAME TO "user"')
 
-    print('Successfully downgraded the database')
+    print('Successfully downgraded the database')  # noqa: T201
 
 
 def main():
@@ -82,7 +81,7 @@ def main():
 
     config.load()
 
-    db_path = cfg.data_storage.user_database[len('sqlite:///') :]
+    db_path = config.frontend.authentication.user_database[len('sqlite:///') :]
 
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()

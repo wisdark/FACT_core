@@ -6,7 +6,7 @@ src/install.log
 src/analysis/signatures/
 src/plugins/*/*/bin
 src/plugins/analysis/crypto_hints/signatures/crypto_signatures.yar
-src/plugins/analysis/cve_lookup/internal/cve_cpe.db
+src/plugins/analysis/cve_lookup/internal/database/cve_cpe.db
 src/plugins/analysis/qemu_exec/test/data/test_tmp_dir
 src/plugins/analysis/qemu_exec/test/data/test_tmp_dir_2
 src/plugins/analysis/users_and_passwords/internal/passwords/10k-most-common.txt
@@ -27,7 +27,7 @@ src/web_interface/static/file_icons
 # Start scripts
 start_all_installed_fact_components
 start_fact_backend
-start_fact_db
+start_fact_database
 start_fact_frontend
 
 # Editor specific files

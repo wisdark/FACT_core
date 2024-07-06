@@ -2,7 +2,7 @@ from subprocess import CompletedProcess
 
 from ..internal.linters import run_pylint
 
-MOCK_RESPONSE = '''[
+MOCK_RESPONSE = """[
     {
         "type": "warning",
         "module": "plugins.analysis.linter.test.test_js_linter",
@@ -15,9 +15,9 @@ MOCK_RESPONSE = '''[
         "message-id": "W0621"
     }
 ]
-'''
+"""
 
-BAD_RESPONSE = '''Usage:  pylint [options] modules_or_packages
+BAD_RESPONSE = """Usage:  pylint [options] modules_or_packages
 
   Check that module(s) satisfy a coding standard (and more !).
 
@@ -31,7 +31,7 @@ BAD_RESPONSE = '''Usage:  pylint [options] modules_or_packages
 
 
 pylint: error: no such option: -a
-'''
+"""
 
 
 def test_do_analysis(monkeypatch):
@@ -41,7 +41,7 @@ def test_do_analysis(monkeypatch):
     )
     result = run_pylint('any/path')
 
-    assert len(result[0].keys()) == 5
+    assert len(result[0].keys()) == 5  # noqa: PLR2004
     assert result[0]['type'] == 'warning'
 
 

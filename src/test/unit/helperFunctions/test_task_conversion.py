@@ -6,7 +6,6 @@ from helperFunctions import tag
 from helperFunctions.task_conversion import (
     _get_tag_list,
     _get_uid_of_analysis_task,
-    _get_uploaded_file_binary,
     check_for_errors,
     convert_analysis_task_to_fw_obj,
 )
@@ -27,7 +26,7 @@ TEST_TASK = {
 }
 
 
-@pytest.mark.parametrize('input_data, expected', [('', []), ('a,b', ['a', 'b'])])
+@pytest.mark.parametrize(('input_data', 'expected'), [('', []), ('a,b', ['a', 'b'])])
 def test_get_tag_list(input_data, expected):
     assert _get_tag_list(input_data) == expected
 
@@ -40,9 +39,6 @@ class TestTaskConversion(unittest.TestCase):
         result = check_for_errors(invalid_request)
         assert len(result) == 1, 'number of invalid fields not correct'
         assert result['b'] == 'Please specify the b'
-
-    def test_get_uploaded_file_binary_error(self):
-        assert _get_uploaded_file_binary(None) is None, 'missing upload file should lead to None'
 
     def test_get_uid_of_analysis_task(self):
         analysis_task = {'binary': b'this is a test'}
@@ -66,7 +62,7 @@ class TestTaskConversion(unittest.TestCase):
         assert fw_obj.version == '1.0'
         assert fw_obj.vendor == 'test vendor'
         assert fw_obj.release_date == '01.01.1970'
-        assert len(fw_obj.scheduled_analysis) == 2
+        assert len(fw_obj.scheduled_analysis) == 2  # noqa: PLR2004
         assert 'dummy' in fw_obj.scheduled_analysis
         assert isinstance(fw_obj.tags, dict), 'tag type not correct'
         assert list(fw_obj.tags.keys()) == ['a', 'b'], 'tags not correct'

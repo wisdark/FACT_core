@@ -2,7 +2,7 @@ from subprocess import CompletedProcess
 
 from ..internal.linters import run_shellcheck
 
-MOCK_RESPONSE = '''[
+MOCK_RESPONSE = """[
     {
         "file": "src/install/pre_install.sh",
         "line": 8,
@@ -33,11 +33,11 @@ MOCK_RESPONSE = '''[
         "code": 2086,
         "message": "Double quote to prevent globbing and word splitting."
     }
-]'''
+]"""
 
-BAD_RESPONSE = '''any/path: any/path: openBinaryFile: does not exist (No such file or directory)
+BAD_RESPONSE = """any/path: any/path: openBinaryFile: does not exist (No such file or directory)
 []
-'''
+"""
 
 
 def test_do_analysis(monkeypatch):
@@ -48,9 +48,9 @@ def test_do_analysis(monkeypatch):
     result = run_shellcheck('any/path')
 
     assert result
-    assert len(result) == 2, 'info issue should be discarded'
+    assert len(result) == 2, 'info issue should be discarded'  # noqa: PLR2004
 
-    assert len(result[0].keys()) == 5
+    assert len(result[0].keys()) == 5  # noqa: PLR2004
     assert result[0]['type'] == 'warning'
 
 

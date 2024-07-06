@@ -11,6 +11,7 @@ from json import JSONDecodeError, loads
 from multiprocessing import Manager
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import TYPE_CHECKING
 
 from common_helper_files import get_binary_from_file, safe_rglob
 from docker.errors import DockerException
@@ -18,26 +19,27 @@ from docker.types import Mount
 from fact_helper_file import get_file_type_from_path
 from requests.exceptions import ReadTimeout
 
+import config
 from analysis.PluginBase import AnalysisBasePlugin
-from config import cfg, configparser_cfg
 from helperFunctions.docker import run_docker_container
 from helperFunctions.tag import TagColor
 from helperFunctions.uid import create_uid
-from objects.file import FileObject
 from storage.fsorganizer import FSOrganizer
 from unpacker.unpack_base import UnpackBase
+
+if TYPE_CHECKING:
+    from objects.file import FileObject
 
 TIMEOUT_IN_SECONDS = 15
 EXECUTABLE = 'executable'
 EMPTY = '(no parameter)'
-DOCKER_IMAGE = 'fact/qemu-exec:alpine-3.14'
+DOCKER_IMAGE = 'fact/qemu-exec:alpine-3.18'
 QEMU_ERRORS = ['Unsupported syscall', 'Invalid ELF', 'uncaught target signal']
 CONTAINER_TARGET_PATH = '/opt/firmware_root'
 
 
 class Unpacker(UnpackBase):
-    def __init__(self, worker_id=None):
-        super().__init__(worker_id=worker_id)
+    def __init__(self):
         self.fs_organizer = FSOrganizer()
 
     def unpack_fo(self, file_object: FileObject) -> TemporaryDirectory | None:
@@ -46,7 +48,7 @@ class Unpacker(UnpackBase):
             logging.error(f'could not unpack {file_object.uid}: file path not found')
             return None
 
-        extraction_dir = TemporaryDirectory(prefix='FACT_plugin_qemu_exec', dir=cfg.data_storage.docker_mount_base_dir)
+        extraction_dir = TemporaryDirectory(prefix='FACT_plugin_qemu_exec', dir=config.backend.docker_mount_base_dir)
         self.extract_files_from_file(file_path, extraction_dir.name)
         return extraction_dir
 
@@ -55,17 +57,16 @@ class Unpacker(UnpackBase):
 
 
 class AnalysisPlugin(AnalysisBasePlugin):
-
     NAME = 'qemu_exec'
     DESCRIPTION = 'test binaries for executability in QEMU and display help if available'
     VERSION = '0.5.2'
-    DEPENDENCIES = ['file_type']
+    DEPENDENCIES = ['file_type']  # noqa: RUF012
     FILE = __file__
 
-    FILE_TYPES = ['application/x-executable', 'application/x-pie-executable', 'application/x-sharedlib']
+    FILE_TYPES = ['application/x-executable', 'application/x-pie-executable', 'application/x-sharedlib']  # noqa: RUF012
     FACT_EXTRACTION_FOLDER_NAME = 'fact_extracted'
 
-    arch_to_bin_dict = OrderedDict(
+    arch_to_bin_dict = OrderedDict(  # noqa: RUF012
         [
             ('aarch64', ['aarch64']),
             ('ARM', ['aarch64', 'arm', 'armeb']),
@@ -84,7 +85,7 @@ class AnalysisPlugin(AnalysisBasePlugin):
     root_path = None
 
     def __init__(self, *args, unpacker=None, **kwargs):
-        self.unpacker = Unpacker(configparser_cfg) if unpacker is None else unpacker
+        self.unpacker = Unpacker() if unpacker is None else unpacker
         super().__init__(*args, **kwargs)
 
     def process_object(self, file_object: FileObject) -> FileObject:
@@ -92,7 +93,7 @@ class AnalysisPlugin(AnalysisBasePlugin):
             file_object.processed_analysis[self.NAME] = {}
         file_object.processed_analysis[self.NAME]['summary'] = []
 
-        if file_object.processed_analysis['file_type']['mime'] in self.FILE_TYPES:
+        if file_object.processed_analysis['file_type']['result']['mime'] in self.FILE_TYPES:
             return self._process_included_binary(file_object)
         return self._process_container(file_object)
 
@@ -248,7 +249,7 @@ def check_qemu_executability(file_path: str, arch_suffix: str, root_path: Path) 
 
 
 def get_docker_output(arch_suffix: str, file_path: str, root_path: Path) -> dict:
-    '''
+    """
     :return: in the case of no error, the output will have the form
     {
         'parameter 1': {'stdout': <b64_str>, 'stderr': <b64_str>, 'return_code': <int>},
@@ -257,7 +258,7 @@ def get_docker_output(arch_suffix: str, file_path: str, root_path: Path) -> dict
         'strace': {'stdout': <b64_str>, 'stderr': <b64_str>, 'return_code': <int>},
     }
     in case of an error, there will be an entry 'error' instead of the entries stdout/stderr/return_code
-    '''
+    """
     command = f'{arch_suffix} {file_path}'
     try:
         result = run_docker_container(
@@ -332,12 +333,12 @@ def replace_empty_strings(docker_output: dict[str, object]):
 
 
 def merge_identical_results(results: dict[str, dict[str, str]]):
-    '''
+    """
     if the results for different parameters (e.g. '-h' and '--help') are identical, merge them
     example input:  {'-h':         {'stdout': 'foo', 'stderr': '', 'return_code': 0},
                      '--help':     {'stdout': 'foo', 'stderr': '', 'return_code': 0}}
     example output: {'-h, --help': {'stdout': 'foo', 'stderr': '', 'return_code': 0}}
-    '''
+    """
     for parameter_1, parameter_2 in itertools.combinations(results, 2):
         if results[parameter_1] == results[parameter_2]:
             combined_key = f'{parameter_1}, {parameter_2}'

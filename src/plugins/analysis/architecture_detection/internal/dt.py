@@ -9,12 +9,12 @@ import yaml
 
 
 def _get_compatible_entry(dts: str) -> str | None:
-    '''
+    """
     Returns the node name of /cpus/cpu*/compatible and its value from a device tree.
     May return None because the spec does not guarantee the existence of this node.
 
     See the DeviceTree spec for more information https://www.devicetree.org/specifications/
-    '''
+    """
 
     # Replace every property that is very long (>256 bytes)
     # This speeds up dtc and should only affect binary data
@@ -43,7 +43,7 @@ def _get_compatible_entry(dts: str) -> str | None:
 
     compatible = None
 
-    # The yaml output is a bit wired, we have to 'unpack' one level to get to the actual nodes
+    # The yaml output is a bit weird, we have to 'unpack' one level to get to the actual nodes
     for item in dt_yaml:
         if 'cpus' not in item:
             continue
@@ -52,13 +52,13 @@ def _get_compatible_entry(dts: str) -> str | None:
 
         cpu_name = None
         # According to the naming convention such a key should always exist
-        for key in cpus.keys():
+        for key in cpus:
             if 'cpu@' in key:
                 cpu_name = key
                 break
 
         cpu = cpus[cpu_name]
-        if 'compatible' not in cpu.keys():
+        if 'compatible' not in cpu:
             continue
 
         compatible = cpu['compatible']
@@ -72,9 +72,13 @@ def _get_compatible_entry(dts: str) -> str | None:
 
 
 def construct_result(file_object):
+    device_tree_result = file_object.processed_analysis['device_tree'].get('result', {})
+    if not device_tree_result:
+        return {}
+
     result = {}
-    for dt_dict in file_object.processed_analysis.get('device_tree', {}).get('device_trees', []):
-        dt = dt_dict['device_tree']
+    for dt_dict in device_tree_result.get('device_trees', []):
+        dt = dt_dict['string']
 
         compatible_entry = _get_compatible_entry(dt)
         if compatible_entry is None:

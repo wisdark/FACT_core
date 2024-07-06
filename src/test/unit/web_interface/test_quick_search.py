@@ -1,4 +1,3 @@
-# pylint: disable=wrong-import-order
 import pytest
 
 from storage.db_interface_frontend import MetaEntry
@@ -9,20 +8,20 @@ class DbMock(CommonDatabaseMock):
     @staticmethod
     def generic_search(
         search_dict: dict,
-        skip: int = 0,
-        limit: int = 0,  # pylint: disable=unused-argument
-        only_fo_parent_firmware: bool = False,
-        inverted: bool = False,
+        skip: int = 0,  # noqa: ARG004
+        limit: int = 0,  # noqa: ARG004
+        only_fo_parent_firmware: bool = False,  # noqa: ARG004
+        inverted: bool = False,  # noqa: ARG004
         as_meta: bool = False,
-    ):  # pylint: disable=unused-argument
+    ):
         result = []
-        if search_dict.get('$or', {}).get('file_name', {}).get('$like') == TEST_FW_2.file_name:
+        if search_dict.get('$or', {}).get('file_name', {}).get('$like') == TEST_FW_2.file_name:  # noqa: SIM114
             result.append(TEST_FW_2.uid)
-        elif search_dict.get('$or', {}).get('device_name', {}).get('$like') == TEST_FW_2.device_name:
+        elif search_dict.get('$or', {}).get('device_name', {}).get('$like') == TEST_FW_2.device_name:  # noqa: SIM114
             result.append(TEST_FW_2.uid)
-        elif search_dict.get('$or', {}).get('vendor', {}).get('$like') == TEST_FW_2.vendor:
+        elif search_dict.get('$or', {}).get('vendor', {}).get('$like') == TEST_FW_2.vendor:  # noqa: SIM114
             result.append(TEST_FW_2.uid)
-        elif search_dict.get('$or', {}).get('sha256') == TEST_FW_2.sha256:
+        elif search_dict.get('$or', {}).get('sha256') == TEST_FW_2.sha256:  # noqa: SIM114
             result.append(TEST_FW_2.uid)
         elif search_dict.get('$or', {}).get('firmware_tags') in TEST_FW_2.tags:
             result.append(TEST_FW_2.uid)
@@ -37,11 +36,9 @@ class DbMock(CommonDatabaseMock):
         return None
 
 
-@pytest.mark.cfg_defaults(
+@pytest.mark.frontend_config_overwrite(
     {
-        'database': {
-            'results-per-page': 10,
-        },
+        'results_per_page': 10,
     }
 )
 @pytest.mark.WebInterfaceUnitTestConfig(database_mock_class=DbMock)

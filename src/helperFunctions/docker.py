@@ -4,14 +4,14 @@ from subprocess import CompletedProcess
 
 import docker
 from docker.errors import APIError, DockerException, ImageNotFound
-from requests.exceptions import ReadTimeout
+from requests.exceptions import ReadTimeout, RequestException
 
 
 def run_docker_container(
     image: str, logging_label: str = 'Docker', timeout: int = 300, combine_stderr_stdout: bool = False, **kwargs
 ) -> CompletedProcess:
-    '''
-    This is a convinience function that runs a docker container and returns a
+    """
+    This is a convenience function that runs a docker container and returns a
     subprocess.CompletedProcess instance for the command ran in the container.
     All remaining keyword args are passed to `docker.containers.run`.
 
@@ -26,7 +26,7 @@ def run_docker_container(
     :raises docker.errors.ImageNotFound: If the docker image was not found
     :raises requests.exceptions.ReadTimeout: If the timeout was reached
     :raises docker.errors.APIError: If the communication with docker fails
-    '''
+    """
     # TODO verify that bind mounts in kwargs["mounts"] only contain files in docker-mount-base-dir
     # If they don't just copy them to docker-mount-base-dir and change the mounts
 
@@ -51,6 +51,9 @@ def run_docker_container(
     except ReadTimeout:
         logging.warning(f'[{logging_label}]: timeout while processing')
         raise
+    except RequestException:
+        logging.warning(f'[{logging_label}]: connection error while processing')
+        raise
     except APIError:
         logging.warning(f'[{logging_label}]: encountered docker error while processing')
         raise
@@ -64,7 +67,7 @@ def run_docker_container(
     if isinstance(command, str):
         args = 'entrypoint' + command
     elif isinstance(command, list):
-        args = ['entrypoint'] + command
+        args = ['entrypoint', *command]
     else:
         args = ['entrypoint']
 

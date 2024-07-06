@@ -3,10 +3,10 @@ from __future__ import annotations
 import logging
 import re
 from base64 import b64decode
-from collections.abc import Callable
 from contextlib import suppress
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from typing import TYPE_CHECKING
 
 from docker.types import Mount
 
@@ -14,36 +14,40 @@ from analysis.PluginBase import AnalysisBasePlugin
 from helperFunctions.docker import run_docker_container
 from helperFunctions.fileSystem import get_src_dir
 from helperFunctions.tag import TagColor
-from objects.file import FileObject
 from plugins.mime_blacklists import MIME_BLACKLIST_NON_EXECUTABLE
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from objects.file import FileObject
 
 JOHN_PATH = Path(__file__).parent.parent / 'bin' / 'john'
 JOHN_POT = Path(__file__).parent.parent / 'bin' / 'john.pot'
 WORDLIST_PATH = Path(get_src_dir()) / 'bin' / 'passwords.txt'
-USER_NAME_REGEX = br'[a-zA-Z][a-zA-Z0-9_-]{2,15}'
+USER_NAME_REGEX = rb'[a-zA-Z][a-zA-Z0-9_-]{2,15}'
 UNIX_REGEXES = [
-    USER_NAME_REGEX + br':[^:]?:\d+:\d*:[^:]*:[^:]*:[^\n ]*',
-    USER_NAME_REGEX + br':\$[1256][ay]?\$[a-zA-Z0-9\./+]*\$[a-zA-Z0-9\./+]{16,128}={0,2}',  # MD5 / Blowfish / SHA
-    USER_NAME_REGEX + br':[a-zA-Z0-9\./=]{13}:\d*:\d*:',  # DES
+    USER_NAME_REGEX + rb':[^:]?:\d+:\d*:[^:]*:[^:]*:[^\n ]*',
+    USER_NAME_REGEX + rb':\$[1256][ay]?\$[a-zA-Z0-9\./+]*\$[a-zA-Z0-9\./+]{16,128}={0,2}',  # MD5 / Blowfish / SHA
+    USER_NAME_REGEX + rb':[a-zA-Z0-9\./=]{13}:\d*:\d*:',  # DES
 ]
 HTPASSWD_REGEXES = [
-    USER_NAME_REGEX + br':\$apr1\$[a-zA-Z0-9\./+=]+\$[a-zA-Z0-9\./+]{22}',  # MD5 apr1
-    USER_NAME_REGEX + br':\{SHA\}[a-zA-Z0-9\./+]{27}=',  # SHA-1
+    USER_NAME_REGEX + rb':\$apr1\$[a-zA-Z0-9\./+=]+\$[a-zA-Z0-9\./+]{22}',  # MD5 apr1
+    USER_NAME_REGEX + rb':\{SHA\}[a-zA-Z0-9\./+]{27}=',  # SHA-1
 ]
-MOSQUITTO_REGEXES = [br'[a-zA-Z][a-zA-Z0-9_-]{2,15}\:\$6\$[a-zA-Z0-9+/=]+\$[a-zA-Z0-9+/]{86}==']
+MOSQUITTO_REGEXES = [rb'[a-zA-Z][a-zA-Z0-9_-]{2,15}\:\$6\$[a-zA-Z0-9+/=]+\$[a-zA-Z0-9+/]{86}==']
 RESULTS_DELIMITER = '=== Results: ==='
 
 
 class AnalysisPlugin(AnalysisBasePlugin):
-    '''
+    """
     This plug-in tries to find and crack passwords
-    '''
+    """
 
     NAME = 'users_and_passwords'
-    DEPENDENCIES = []
+    DEPENDENCIES = []  # noqa: RUF012
     MIME_BLACKLIST = MIME_BLACKLIST_NON_EXECUTABLE
     DESCRIPTION = 'search for UNIX, httpd, and mosquitto password files, parse them and try to crack the passwords'
-    VERSION = '0.5.2'
+    VERSION = '0.5.4'
     FILE = __file__
 
     def process_object(self, file_object: FileObject) -> FileObject:
@@ -105,7 +109,7 @@ def generate_mosquitto_entry(entry: bytes) -> dict:
 
 
 def _is_des_hash(pw_hash: str) -> bool:
-    return len(pw_hash) == 13
+    return len(pw_hash) == 13  # noqa: PLR2004
 
 
 def crack_hash(passwd_entry: bytes, result_entry: dict, format_term: str = '') -> bool:
@@ -113,7 +117,7 @@ def crack_hash(passwd_entry: bytes, result_entry: dict, format_term: str = '') -
         fp.write(passwd_entry)
         fp.seek(0)
         john_process = run_docker_container(
-            'fact/john:alpine-3.14',
+            'fact/john:alpine-3.18',
             command=f'/work/input_file {format_term}',
             mounts=[
                 Mount('/work/input_file', fp.name, type='bind'),
@@ -122,12 +126,15 @@ def crack_hash(passwd_entry: bytes, result_entry: dict, format_term: str = '') -
             logging_label='users_and_passwords',
         )
         result_entry['log'] = john_process.stdout
+        if 'No password hashes loaded' in john_process.stdout:
+            result_entry['ERROR'] = 'hash type is not supported'
+            return False
         output = parse_john_output(john_process.stdout)
     if output:
         if any('0 password hashes cracked' in line for line in output):
-            result_entry['ERROR'] = 'hash type is not supported'
+            result_entry['ERROR'] = 'password cracking not successful'
             return False
-        with suppress(KeyError):
+        with suppress(IndexError):
             result_entry['password'] = output[0].split(':')[1]
             return True
     return False
@@ -141,5 +148,5 @@ def parse_john_output(john_output: str) -> list[str]:
 
 
 def _to_str(byte_str: bytes) -> str:
-    '''result entries must be converted from `bytes` to `str` in order to be saved as JSON'''
+    """result entries must be converted from `bytes` to `str` in order to be saved as JSON"""
     return byte_str.decode(errors='replace')

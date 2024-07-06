@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
-'''
+"""
     Firmware Analysis and Comparison Tool (FACT)
-    Copyright (C) 2015-2023  Fraunhofer FKIE
+    Copyright (C) 2015-2024  Fraunhofer FKIE
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,22 +15,21 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
+"""
 
 import grp
 import logging
 import os
 import sys
 from pathlib import Path
-from time import sleep
 
 try:
     from fact_base import FactBase
 except (ImportError, ModuleNotFoundError):
     sys.exit(1)
 
+import config
 from analysis.PluginBase import PluginInitException
-from config import cfg
 from helperFunctions.process import complete_shutdown
 from intercom.back_end_binding import InterComBackEndBinding
 from scheduler.analysis import AnalysisScheduler
@@ -47,6 +46,7 @@ class FactBackend(FactBase):
     def __init__(self):
         super().__init__()
         self.unpacking_lock_manager = UnpackingLockManager()
+        self._create_docker_base_dir()
 
         try:
             self.analysis_service = AnalysisScheduler(unpacking_locks=self.unpacking_lock_manager)
@@ -82,8 +82,15 @@ class FactBackend(FactBase):
         if not self.args.testing:
             complete_shutdown()
 
-    def main(self):
-        docker_mount_base_dir = Path(cfg.data_storage.docker_mount_base_dir)
+    def _update_component_workload(self):
+        self.work_load_stat.update(
+            unpacking_workload=self.unpacking_service.get_scheduled_workload(),
+            analysis_workload=self.analysis_service.get_scheduled_workload(),
+        )
+
+    @staticmethod
+    def _create_docker_base_dir():
+        docker_mount_base_dir = Path(config.backend.docker_mount_base_dir)
         docker_mount_base_dir.mkdir(0o770, exist_ok=True)
         docker_gid = grp.getgrnam('docker').gr_gid
         try:
@@ -92,21 +99,6 @@ class FactBackend(FactBase):
             # If we don't have enough rights to change the permissions we assume they are right
             # E.g. in FACT_docker the correct group is not the group named 'docker'
             logging.warning('Could not change permissions of docker-mount-base-dir. Ignoring.')
-
-        self.start()
-
-        while self.run:
-            self.work_load_stat.update(
-                unpacking_workload=self.unpacking_service.get_scheduled_workload(),
-                analysis_workload=self.analysis_service.get_scheduled_workload(),
-            )
-            if self._exception_occurred():
-                break
-            sleep(5)
-            if self.args.testing:
-                break
-
-        self.shutdown()
 
     def _exception_occurred(self):
         return any(

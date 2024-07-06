@@ -15,9 +15,9 @@ sys.path.insert(0, str(FACT_SRC))
 
 # -- Project information -----------------------------------------------------
 
-# pylint: disable=redefined-builtin,invalid-name
+
 project = 'FACT'
-copyright = '2020-2023  Fraunhofer FKIE'
+copyright = '2020-2024  Fraunhofer FKIE'  # noqa: A001
 author = 'jstucke'
 
 
@@ -45,7 +45,6 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # a list of builtin themes.
 #
 html_theme = 'sphinx_rtd_theme'
-# html_theme = 'alabaster'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -87,7 +86,6 @@ autodoc_mock_imports = [
     'networkx',
     'numpy',
     'passlib',
-    'pluginbase',
     'prompt_toolkit',
     'psutil',
     'psycopg2',
@@ -98,13 +96,16 @@ autodoc_mock_imports = [
     'pytest-cov',
     'pytest-timeout',
     'redis',
+    'quantiphy',
     'requests',
     'rich',
+    'semver',
     'si_prefix',
     'sqlalchemy',
     'ssdeep',
     'testresources',
     'tlsh',
+    'toml',
     'uwsgi',
     'werkzeug',
     'wtforms',

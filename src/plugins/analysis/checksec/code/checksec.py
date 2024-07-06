@@ -14,9 +14,9 @@ SHELL_SCRIPT = Path(get_src_dir()) / 'bin' / 'checksec'
 class AnalysisPlugin(AnalysisBasePlugin):
     NAME = 'exploit_mitigations'
     DESCRIPTION = 'analyses ELF binaries within a firmware for present exploit mitigation techniques'
-    DEPENDENCIES = ['file_type']
-    MIME_WHITELIST = ['application/x-executable', 'application/x-object', 'application/x-sharedlib']
-    VERSION = '0.1.6'
+    DEPENDENCIES = ['file_type']  # noqa: RUF012
+    MIME_WHITELIST = ['application/x-executable', 'application/x-object', 'application/x-sharedlib']  # noqa: RUF012
+    VERSION = '0.2.0'
     FILE = __file__
 
     def additional_setup(self):
@@ -25,8 +25,7 @@ class AnalysisPlugin(AnalysisBasePlugin):
 
     def process_object(self, file_object):
         try:
-            if re.search(r'.*elf.*', file_object.processed_analysis['file_type']['full'].lower()) is not None:
-
+            if re.search(r'.*elf.*', file_object.processed_analysis['file_type']['result']['full'].lower()) is not None:
                 mitigation_dict, mitigation_dict_summary = check_mitigations(file_object.file_path)
                 file_object.processed_analysis[self.NAME] = mitigation_dict
                 file_object.processed_analysis[self.NAME]['summary'] = list(mitigation_dict_summary.keys())
@@ -40,7 +39,12 @@ class AnalysisPlugin(AnalysisBasePlugin):
 
 def execute_checksec_script(file_path):
     checksec_process = subprocess.run(
-        f'{SHELL_SCRIPT} --file={file_path} --format=json --extended', shell=True, stdout=PIPE, stderr=STDOUT, text=True
+        f'{SHELL_SCRIPT} --file={file_path} --format=json --extended',
+        shell=True,
+        stdout=PIPE,
+        stderr=STDOUT,
+        text=True,
+        check=False,
     )
     if checksec_process.returncode != 0:
         raise ValueError(f'Checksec script exited with non-zero return code {checksec_process.returncode}')
@@ -55,7 +59,6 @@ def check_mitigations(file_path):
     check_nx(file_path, mitigations, summary, checksec_result)
     check_canary(file_path, mitigations, summary, checksec_result)
     check_pie(file_path, mitigations, summary, checksec_result)
-    check_fortify_source(file_path, mitigations, summary, checksec_result)
     check_clang_cfi(file_path, mitigations, summary, checksec_result)
     check_clang_safestack(file_path, mitigations, summary, checksec_result)
     check_stripped_symbols(file_path, mitigations, summary, checksec_result)
@@ -77,16 +80,6 @@ def check_relro(file_path, mitigations, summary, checksec_result):
     elif checksec_result['relro'] == 'no':
         summary.update({'RELRO disabled': file_path})
         mitigations.update({'RELRO': 'disabled'})
-
-
-def check_fortify_source(file_path, mitigations, summary, checksec_result):
-    if checksec_result['fortify_source'] == 'yes':
-        summary.update({'FORTIFY_SOURCE enabled': file_path})
-        mitigations.update({'FORTIFY_SOURCE': 'enabled'})
-
-    elif checksec_result['fortify_source'] == 'no':
-        summary.update({'FORTIFY_SOURCE disabled': file_path})
-        mitigations.update({'FORTIFY_SOURCE': 'disabled'})
 
 
 def check_pie(file_path, mitigations, summary, checksec_result):
