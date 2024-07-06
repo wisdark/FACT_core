@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>helperFunctions &mdash; FACT  documentation</title>
@@ -12,10 +12,9 @@
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/doctools.js"></script>
         <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -30,12 +29,16 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> FACT
-            <img src="../_static/FACT_smaller.png" class="logo" alt="Logo"/>
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            FACT
+              <img src="../_static/FACT_smaller.png" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -54,6 +57,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Modules:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="analysis.html">analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="config.html">config</a></li>
 <li class="toctree-l1"><a class="reference internal" href="conftest.html">conftest</a></li>
 <li class="toctree-l1"><a class="reference internal" href="test.html">test</a></li>
@@ -99,8 +103,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>helperFunctions</li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">helperFunctions</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/modules/helperFunctions.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -133,7 +137,6 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="helperFunctions.database.html">helperFunctions.database module</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="helperFunctions.database.html#helperFunctions.database.ConnectTo"><code class="docutils literal notranslate"><span class="pre">ConnectTo</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.database.html#helperFunctions.database.get_shared_session"><code class="docutils literal notranslate"><span class="pre">get_shared_session()</span></code></a></li>
 </ul>
 </li>
@@ -206,7 +209,6 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="helperFunctions.merge_generators.html">helperFunctions.merge_generators module</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="helperFunctions.merge_generators.html#helperFunctions.merge_generators.avg"><code class="docutils literal notranslate"><span class="pre">avg()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.merge_generators.html#helperFunctions.merge_generators.shuffled"><code class="docutils literal notranslate"><span class="pre">shuffled()</span></code></a></li>
 </ul>
 </li>
@@ -219,7 +221,8 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="helperFunctions.plugin.html">helperFunctions.plugin module</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="helperFunctions.plugin.html#helperFunctions.plugin.import_plugins"><code class="docutils literal notranslate"><span class="pre">import_plugins()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="helperFunctions.plugin.html#helperFunctions.plugin.discover_analysis_plugins"><code class="docutils literal notranslate"><span class="pre">discover_analysis_plugins()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="helperFunctions.plugin.html#helperFunctions.plugin.discover_compare_plugins"><code class="docutils literal notranslate"><span class="pre">discover_compare_plugins()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="helperFunctions.process.html">helperFunctions.process module</a><ul>
@@ -238,9 +241,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="helperFunctions.program_setup.html">helperFunctions.program_setup module</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="helperFunctions.program_setup.html#helperFunctions.program_setup.get_log_file_for_component"><code class="docutils literal notranslate"><span class="pre">get_log_file_for_component()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="helperFunctions.program_setup.html#helperFunctions.program_setup.program_setup"><code class="docutils literal notranslate"><span class="pre">program_setup()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="helperFunctions.program_setup.html#helperFunctions.program_setup.set_logging_cfg_from_args"><code class="docutils literal notranslate"><span class="pre">set_logging_cfg_from_args()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="helperFunctions.program_setup.html#helperFunctions.program_setup.setup_argparser"><code class="docutils literal notranslate"><span class="pre">setup_argparser()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="helperFunctions.program_setup.html#helperFunctions.program_setup.setup_logging"><code class="docutils literal notranslate"><span class="pre">setup_logging()</span></code></a></li>
 </ul>
 </li>
@@ -274,14 +275,8 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="helperFunctions.virtual_file_path.html">helperFunctions.virtual_file_path module</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="helperFunctions.virtual_file_path.html#helperFunctions.virtual_file_path.get_base_of_virtual_path"><code class="docutils literal notranslate"><span class="pre">get_base_of_virtual_path()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="helperFunctions.virtual_file_path.html#helperFunctions.virtual_file_path.get_parent_uids_from_virtual_path"><code class="docutils literal notranslate"><span class="pre">get_parent_uids_from_virtual_path()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="helperFunctions.virtual_file_path.html#helperFunctions.virtual_file_path.get_top_of_virtual_path"><code class="docutils literal notranslate"><span class="pre">get_top_of_virtual_path()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="helperFunctions.virtual_file_path.html#helperFunctions.virtual_file_path.get_uids_from_virtual_path"><code class="docutils literal notranslate"><span class="pre">get_uids_from_virtual_path()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="helperFunctions.virtual_file_path.html#helperFunctions.virtual_file_path.join_virtual_path"><code class="docutils literal notranslate"><span class="pre">join_virtual_path()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="helperFunctions.virtual_file_path.html#helperFunctions.virtual_file_path.merge_vfp_lists"><code class="docutils literal notranslate"><span class="pre">merge_vfp_lists()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="helperFunctions.virtual_file_path.html#helperFunctions.virtual_file_path.split_virtual_path"><code class="docutils literal notranslate"><span class="pre">split_virtual_path()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="helperFunctions.virtual_file_path.html#helperFunctions.virtual_file_path.update_virtual_file_path"><code class="docutils literal notranslate"><span class="pre">update_virtual_file_path()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="helperFunctions.virtual_file_path.html#helperFunctions.virtual_file_path.get_paths_for_all_parents"><code class="docutils literal notranslate"><span class="pre">get_paths_for_all_parents()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="helperFunctions.virtual_file_path.html#helperFunctions.virtual_file_path.get_some_vfp"><code class="docutils literal notranslate"><span class="pre">get_some_vfp()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="helperFunctions.web_interface.html">helperFunctions.uid web_interface</a><ul>
@@ -319,7 +314,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2020-2023  Fraunhofer FKIE.</p>
+    <p>&#169; Copyright 2020-2024  Fraunhofer FKIE.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
