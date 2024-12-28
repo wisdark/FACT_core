@@ -1,6 +1,4 @@
 import json
-import os
-import time
 from urllib.parse import quote
 
 import pytest
@@ -32,8 +30,8 @@ class TestAcceptanceMisc:
         assert b'<h3 class="mb-3">Upload Firmware</h3>' in rv.data, 'upload page not displayed correctly'
 
     def _upload_firmware_put(self, test_client, path, device_name, uid):
-        testfile_path = os.path.join(get_test_data_dir(), path)  # noqa: PTH118
-        with open(testfile_path, 'rb') as fp:  # noqa: PTH123
+        testfile_path = get_test_data_dir() / path
+        with testfile_path.open('rb') as fp:
             data = {
                 'file': fp,
                 'device_name': device_name,
@@ -70,7 +68,7 @@ class TestAcceptanceMisc:
         assert b'backend cpu load' in rv.data
         assert b'test comment' in rv.data
         assert (
-            rv.data.count(f'onclick="location.href=\'/analysis/{test_fw_a.uid}\'"'.encode()) == 2  # noqa: PLR2004
+            rv.data.count(f'onclick="location.href=\'/analysis/{test_fw_a.uid}\'"'.encode()) == 2
         ), 'There should be two analysis links: one for latest comments and one for latest submissions'
 
     def _show_system_monitor(self, test_client):
@@ -111,12 +109,11 @@ class TestAcceptanceMisc:
         for fw in [test_fw_a, test_fw_c]:
             self._upload_firmware_put(test_client, fw.path, fw.name, fw.uid)
         self._show_about(test_client)
-        time.sleep(4)
+        assert analysis_finished_event.wait(timeout=10)
         workload_statistic.update(
             unpacking_workload=unpacking_scheduler.get_scheduled_workload(),
             analysis_workload=analysis_scheduler.get_scheduled_workload(),
         )
-        assert analysis_finished_event.wait(timeout=10)
         self._show_system_monitor(test_client)
 
         stats_updater.update_all_stats()

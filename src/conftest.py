@@ -29,7 +29,7 @@ def docker_mount_base_dir() -> str:
 
 
 @pytest.fixture
-def _firmware_file_storage_directory() -> str:  # noqa: PT005
+def firmware_file_storage_directory() -> str:
     with TemporaryDirectory(prefix='fact-firmware-file-storage-directory') as tmp_dir:
         yield tmp_dir
 
@@ -98,14 +98,15 @@ def common_config(request, docker_mount_base_dir) -> config.Common:
 
 
 @pytest.fixture
-def backend_config(request, common_config, _firmware_file_storage_directory) -> config.Backend:
+def backend_config(request, common_config, firmware_file_storage_directory) -> config.Backend:
     overwrite_config = merge_markers(request, 'backend_config_overwrite', dict)
 
     test_config = {
-        'firmware_file_storage_directory': _firmware_file_storage_directory,
+        'firmware_file_storage_directory': firmware_file_storage_directory,
         'block_delay': 0.1,
         'ssdeep_ignore': 1,
-        'intercom_poll_delay': 1.0,
+        'intercom_poll_delay': 0.1,
+        'analysis_status_update_interval': 0.2,
         'throw_exceptions': True,  # Always throw exceptions to avoid miraculous timeouts in test cases
         'plugin_defaults': {'processes': 1},
         'unpacking': {
@@ -117,6 +118,7 @@ def backend_config(request, common_config, _firmware_file_storage_directory) -> 
             'delay': 0.0,
             'base_port': 9900,
         },
+        'binary_search': {'max_strings_per_match': 10},
         'plugin': {
             'cpu_architecture': {'name': 'cpu_architecture', 'processes': 4},
             'cve_lookup': {'name': 'cve_lookup', 'processes': 2},
@@ -144,6 +146,8 @@ def frontend_config(request, common_config) -> config.Frontend:
             'user_database': 'sqlite:////media/data/fact_auth_data/fact_users.db',
             'password_salt': '5up3r5tr0n6_p455w0rd_5417',
         },
+        # we need the actual secret to set up the test configuration
+        'hasura': {'admin_secret': config.frontend.hasura.admin_secret},
     }
 
     test_config.update(common_config.model_dump())
@@ -153,7 +157,7 @@ def frontend_config(request, common_config) -> config.Frontend:
 
 
 @pytest.fixture(autouse=True)
-def patch_config(monkeypatch, common_config, backend_config, frontend_config):  # noqa: PT004
+def _patch_config(monkeypatch, common_config, backend_config, frontend_config):
     """This fixture will replace :py:data`config.common`, :py:data:`config.backend` and :py:data:`config.frontend`
     with the default test config.
 
@@ -191,7 +195,7 @@ class AnalysisPluginTestConfig(BaseModel):
 
 
 @pytest.fixture
-def analysis_plugin(request, patch_config):  # noqa: ARG001
+def analysis_plugin(request, _patch_config):
     """Returns an instance of an AnalysisPlugin.
     This fixture can be configured by the supplying an instance of ``AnalysisPluginTestConfig`` as marker of the same
     name.

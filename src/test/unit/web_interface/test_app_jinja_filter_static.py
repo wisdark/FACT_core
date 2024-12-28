@@ -3,15 +3,6 @@ import pytest
 from web_interface.components.jinja_filter import FilterClass
 
 
-def test_split_user_and_password_type_entry():
-    new_test_entry_form = {'test:mosquitto': {'password': '123456'}}
-    old_test_entry_form = {'test': {'password': '123456'}}
-    expected_new_entry = {'test': {'mosquitto': {'password': '123456'}}}
-    expected_old_entry = {'test': {'unix': {'password': '123456'}}}
-    assert expected_new_entry == FilterClass._split_user_and_password_type_entry(new_test_entry_form)
-    assert expected_old_entry == FilterClass._split_user_and_password_type_entry(old_test_entry_form)
-
-
 @pytest.mark.parametrize(
     ('hid', 'uid', 'current_uid', 'expected_output'),
     [
@@ -47,8 +38,6 @@ class FilterClassMock:
                     {
                         'data': [1696, 207, 9],
                         'backgroundColor': ['#4062fa', '#149df1', '#18cde4'],
-                        'borderColor': '#fff',
-                        'borderWidth': 2,
                     }
                 ],
             },
@@ -62,8 +51,6 @@ class FilterClassMock:
                     {
                         'data': [1696, 207, 9],
                         'backgroundColor': ['#4062fa', '#a0faa1'],
-                        'borderColor': '#fff',
-                        'borderWidth': 2,
                     }
                 ],
             },

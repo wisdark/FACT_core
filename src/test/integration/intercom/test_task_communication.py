@@ -8,9 +8,9 @@ from time import sleep
 import pytest
 
 from intercom.back_end_binding import (
-    InterComBackEndAnalysisPlugInsPublisher,
     InterComBackEndAnalysisTask,
     InterComBackEndBinarySearchTask,
+    InterComBackEndCancelTask,
     InterComBackEndCompareTask,
     InterComBackEndFileDiffTask,
     InterComBackEndLogsTask,
@@ -20,12 +20,14 @@ from intercom.back_end_binding import (
     InterComBackEndSingleFileTask,
     InterComBackEndTarRepackTask,
 )
+from intercom.common_redis_binding import publish_available_analysis_plugins
 from intercom.front_end_binding import InterComFrontEndBinding
 from test.common_helper import create_test_firmware
 
 
 class AnalysisServiceMock:
-    def get_plugin_dict(self):
+    @staticmethod
+    def get_plugin_dict():
         return {'dummy': 'dummy description'}
 
 
@@ -92,10 +94,11 @@ class TestInterComTaskCommunication:
         assert result == ('valid_id', False)
 
     def test_analysis_plugin_publication(self, intercom_frontend):
-        _ = InterComBackEndAnalysisPlugInsPublisher(analysis_service=AnalysisServiceMock())
+        plugin_dict = {'test_plugin': ('test plugin description', True, {}, '1.0.0', [], [], [], 2)}
+        publish_available_analysis_plugins(plugin_dict)
         plugins = intercom_frontend.get_available_analysis_plugins()
         assert len(plugins) == 1, 'Not all plug-ins found'
-        assert plugins == {'dummy': 'dummy description'}, 'content not correct'
+        assert plugins == plugin_dict, 'content not correct'
 
     def test_analysis_plugin_publication_not_available(self, intercom_frontend):
         with pytest.raises(RuntimeError):
@@ -188,3 +191,10 @@ class TestInterComTaskCommunication:
                 result = result_future.result()
             assert task is None, 'task not correct'
             assert result == expected_result.split()
+
+    def test_cancel_task(self, intercom_frontend):
+        task = InterComBackEndCancelTask()
+        root_uid = 'root_uid'
+        intercom_frontend.cancel_analysis(root_uid)
+        result = task.get_next_task()
+        assert result == root_uid

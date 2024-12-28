@@ -3,8 +3,9 @@ testresources==2.0.1
 
 # General python dependencies
 appdirs==1.4.4
+docker~=7.1.0
 flaky==3.7.0
-lief==0.14.1
+lief==0.15.0
 psutil==5.9.4
 psycopg2-binary==2.9.9
 pylint==2.15.5
@@ -25,8 +26,6 @@ yara-python==4.5.0
 pydantic==2.4.0
 # Config parsing
 toml==0.10.2
-
-git+https://github.com/fkie-cad/fact_helper_file.git
 
 # Common code modules
 git+https://github.com/fkie-cad/common_helper_files.git

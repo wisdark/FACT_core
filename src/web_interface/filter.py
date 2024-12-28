@@ -14,7 +14,7 @@ from operator import itemgetter
 from re import Match
 from string import ascii_letters
 from time import localtime, strftime, struct_time, time
-from typing import Iterable, Union
+from typing import TYPE_CHECKING, Any, Iterable, Union
 
 import packaging.version
 import semver
@@ -27,6 +27,9 @@ from helperFunctions.tag import TagColor
 from helperFunctions.web_interface import get_alternating_color_list
 from web_interface.security.authentication import user_has_privilege
 from web_interface.security.privileges import PRIVILEGES
+
+if TYPE_CHECKING:
+    from objects.file import FileObject
 
 
 def generic_nice_representation(i):  # noqa: PLR0911
@@ -366,6 +369,13 @@ def get_unique_keys_from_list_of_dicts(list_of_dicts: list[dict]):
     return unique_keys
 
 
+def group_dict_list_by_key(dict_list: list[dict], key: Any) -> dict[str, list[dict]]:
+    result = {}
+    for dictionary in dict_list:
+        result.setdefault(dictionary.get(key), []).append(dictionary)
+    return result
+
+
 def random_collapse_id():
     return ''.join(random.choice(ascii_letters) for _ in range(10))
 
@@ -415,15 +425,16 @@ def sort_cve_results(cve_result: dict[str, dict[str, str]]) -> list[tuple[str, d
     return sorted(cve_result.items(), key=_cve_sort_key)
 
 
-def _cve_sort_key(item: tuple[str, dict[str, str]]) -> tuple[float, float, str]:
+def _cve_sort_key(item: tuple[str, dict]) -> tuple[float, float, str]:
     """
-    primary sorting key: -max(v2 score, v3 score)
-    secondary sorting key: -min(v2 score, v3 score)
+    primary sorting key: -max(v2 score, v3.0 score, v3.1 score, v4.0 score, ...)
+    secondary sorting key: -min(v2 score, v3.0 score, v3.1 score, v4.0 score, ...)
     tertiary sorting key: CVE ID
     use negative values so that highest scores come first, and we can also sort by CVE ID
     """
-    v2_score, v3_score = (_cve_score_to_float(item[1].get(key, 0.0)) for key in ['score2', 'score3'])
-    return -max(v2_score, v3_score), -min(v2_score, v3_score), item[0]
+    score_dict = item[1]['scores']
+    scores = {_cve_score_to_float(value) for value in score_dict.values()}
+    return -max(scores or [0.0]), -min(scores or [0.0]), item[0]
 
 
 def _cve_score_to_float(score: float | str) -> float:
@@ -431,6 +442,14 @@ def _cve_score_to_float(score: float | str) -> float:
         return float(score)
     except ValueError:  # "N/A" entries
         return 0.0
+
+
+def get_cvss_versions(cve_result: dict) -> set[str]:
+    return {score_version for entry in cve_result.values() for score_version in entry['scores']}
+
+
+def sort_dict_list_by_key(dict_list: list[dict], key: Any) -> list[dict]:
+    return sorted(dict_list, key=lambda d: str(d.get(key, '')))
 
 
 def linter_reformat_issues(issues) -> dict[str, list[dict[str, str]]]:
@@ -519,9 +538,58 @@ def as_ascii_table(data: dict) -> str:
     return ''.join([f'{k:<10} {v!s:<10}\n' for k, v in data.items()])
 
 
-def octal_to_readable(octal: str) -> str:
-    return stat.filemode(int(octal, 8)).lstrip('?')
+def octal_to_readable(octal: str, include_type: bool = False) -> str:
+    mode = int(octal, 8)
+    mode_str = stat.filemode(mode).lstrip('?')
+    if include_type:
+        return f'{mode_str}{_file_mode_to_type(mode)}'
+    return mode_str
+
+
+STAT_FUNCTIONS = {
+    stat.S_ISDIR: 'directory',
+    stat.S_ISCHR: 'character device',
+    stat.S_ISBLK: 'block device',
+    stat.S_ISREG: 'regular file',
+    stat.S_ISFIFO: 'fifo (named pipe)',
+    stat.S_ISLNK: 'symbolic link',
+    stat.S_ISSOCK: 'socket file',
+    stat.S_ISDOOR: 'door',
+    stat.S_ISPORT: 'event port',
+    stat.S_ISWHT: 'whiteout',
+}
+
+
+def _file_mode_to_type(mode: int) -> str:
+    if not stat.S_IFMT(mode):  # the mode does not include a file type part (i.e. the mode is <= 0o7777)
+        return ''
+    for is_type_fun, file_type in STAT_FUNCTIONS.items():
+        if is_type_fun(mode):
+            return f', {file_type}'
+    return ''
 
 
 def str_to_hex(string: str) -> str:
     return string.encode(errors='replace').hex()
+
+
+KNOWN_TEXT_MIME_TYPES = {  # that don't start with text/
+    'application/javascript',
+    'application/json',
+    'application/pgp-keys',
+    'firmware/intel-hex',
+    'message/news',
+}
+
+
+def is_text_file(mime: str) -> bool:
+    return mime.startswith('text/') or mime in KNOWN_TEXT_MIME_TYPES
+
+
+def is_image(mime: str) -> bool:
+    return mime.startswith('image/')
+
+
+def is_text_file_or_image(fo: FileObject) -> bool:
+    mime = fo.processed_analysis.get('file_type', {}).get('result', {}).get('mime', '')
+    return is_image(mime) or is_text_file(mime)

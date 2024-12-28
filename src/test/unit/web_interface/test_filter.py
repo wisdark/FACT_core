@@ -6,6 +6,7 @@ from zlib import compress
 import pytest
 
 import web_interface.filter as flt
+from test.common_helper import create_test_file_object
 
 UNSORTABLE_LIST = [[], ()]
 
@@ -50,7 +51,7 @@ def test_get_all_uids_in_string():
         "'deaa23651f0a9cc247a20d0e0a78041a8e40b144e21b82081ecb519dd548eecf_24494080'}"
     )
     result = flt.get_all_uids_in_string(test_string)
-    assert len(result) == 3, 'not all uids found'  # noqa: PLR2004
+    assert len(result) == 3, 'not all uids found'
     assert 'd41c0f1431b39b9db565b4e32a5437c61c77762a3f4401bac3bafa4887164117_24' in result, 'first uid not found'
     assert 'f7c927fb0c209035c7e6939bdd00eabdaada429f2ee9aeca41290412c8c79759_25' in result, 'second uid not found'
     assert 'deaa23651f0a9cc247a20d0e0a78041a8e40b144e21b82081ecb519dd548eecf_24494080' in result, 'third uid not found'
@@ -303,6 +304,17 @@ def test_get_unique_keys_from_list_of_dicts(list_of_dicts, expected_result):
 
 
 @pytest.mark.parametrize(
+    ('list_of_dicts', 'key', 'expected_result'),
+    [
+        ([], '', {}),
+        ([{'a': '1'}, {'a': '1'}, {'a': '2'}], 'a', {'1': [{'a': '1'}, {'a': '1'}], '2': [{'a': '2'}]}),
+    ],
+)
+def test_group_dict_list_by_key(list_of_dicts, key, expected_result):
+    assert flt.group_dict_list_by_key(list_of_dicts, key) == expected_result
+
+
+@pytest.mark.parametrize(
     ('function', 'input_data', 'expected_output', 'error_message'),
     [
         (
@@ -394,40 +406,33 @@ def test_replace_cwe_with_link(input_string, expected_result):
         ({}, []),
         (  # primary key max(v2, v3) sorting
             {
-                'cve_id1': {'score2': '6.0', 'score3': '2.0'},
-                'cve_id2': {'score2': '4.0', 'score3': '3.0'},
-                'cve_id3': {'score2': '1.0', 'score3': '5.0'},
+                'cve_id1': {'scores': {'V2': '6.0', 'V3.0': '2.0'}},
+                'cve_id2': {'scores': {'V2': '4.0', 'V3.0': '3.0'}},
+                'cve_id3': {'scores': {'V2': '1.0', 'V3.0': '5.0'}},
             },
             ['cve_id1', 'cve_id3', 'cve_id2'],
         ),
         (  # numerical sorting
             {
-                'cve_id1': {'score2': '1.3', 'score3': '0.0'},
-                'cve_id2': {'score2': '10.0', 'score3': '0.0'},
-                'cve_id3': {'score2': '2.6', 'score3': '0.0'},
+                'cve_id1': {'scores': {'V2': '1.3', 'V3.0': '0.0'}},
+                'cve_id2': {'scores': {'V2': '10.0', 'V3.0': '0.0'}},
+                'cve_id3': {'scores': {'V2': '2.6', 'V3.0': '0.0'}},
             },
             ['cve_id2', 'cve_id3', 'cve_id1'],
         ),
         (  # secondary key sorting
             {
-                'cve_id1': {'score2': '5.0', 'score3': '2.0'},
-                'cve_id2': {'score2': '5.0', 'score3': '3.0'},
-                'cve_id3': {'score2': '5.0', 'score3': '4.0'},
+                'cve_id1': {'scores': {'V2': '5.0', 'V3.0': '2.0'}},
+                'cve_id2': {'scores': {'V2': '5.0', 'V3.0': '3.0'}},
+                'cve_id3': {'scores': {'V2': '5.0', 'V3.0': '4.0'}},
             },
             ['cve_id3', 'cve_id2', 'cve_id1'],
         ),
-        (  # N/A entries
-            {
-                'cve_id1': {'score2': 'N/A', 'score3': '4.0'},
-                'cve_id2': {'score2': '3.0', 'score3': 'N/A'},
-            },
-            ['cve_id1', 'cve_id2'],
-        ),
         (  # missing entries
             {
-                'cve_id1': {'score3': '1.0'},
-                'cve_id2': {'score2': '2.0'},
-                'cve_id3': {},
+                'cve_id1': {'scores': {'V3.0': '1.0'}},
+                'cve_id2': {'scores': {'V2': '2.0'}},
+                'cve_id3': {'scores': {}},
             },
             ['cve_id2', 'cve_id1', 'cve_id3'],
         ),
@@ -488,3 +493,46 @@ def test_as_ascii_table():
 )
 def test_str_to_hex(input_, expected_result):
     assert flt.str_to_hex(input_) == expected_result
+
+
+@pytest.mark.parametrize(
+    ('input_', 'include_type', 'expected_result'),
+    [
+        ('755', True, 'rwxr-xr-x'),
+        ('755', False, 'rwxr-xr-x'),
+        ('104666', True, '-rwSrw-rw-, regular file'),
+        ('104666', False, '-rwSrw-rw-'),
+        ('40777', True, 'drwxrwxrwx, directory'),
+        ('40777', False, 'drwxrwxrwx'),
+    ],
+)
+def test_octal_to_readable(input_, include_type, expected_result):
+    assert flt.octal_to_readable(input_, include_type=include_type) == expected_result
+
+
+@pytest.mark.parametrize(
+    ('type_analysis', 'expected_result'),
+    [
+        ({'file_type': {}}, False),
+        ({'file_type': {'result': {'mime': 'image/png'}}}, True),
+        ({'file_type': {'result': {'mime': 'text/plain'}}}, True),
+        ({'file_type': {'result': {'mime': 'application/octet-stream'}}}, False),
+        ({'file_type': {'result': {'mime': 'application/javascript'}}}, True),
+    ],
+)
+def test_is_text_file_or_image(type_analysis, expected_result):
+    fo = create_test_file_object(analyses=type_analysis)
+    assert flt.is_text_file_or_image(fo) == expected_result
+
+
+@pytest.mark.parametrize(
+    ('input_', 'expected_result'),
+    [
+        ([], []),
+        ([{'a': 2}, {'a': 1}, {'a': 3}], [{'a': 1}, {'a': 2}, {'a': 3}]),
+        ([{'a': 2}, {'a': 1}, {'b': 3}], [{'b': 3}, {'a': 1}, {'a': 2}]),
+        ([{'a': 'b'}, {'a': 'c'}, {'a': 'a'}], [{'a': 'a'}, {'a': 'b'}, {'a': 'c'}]),
+    ],
+)
+def test_sort_dict_list_by_key(input_, expected_result):
+    assert flt.sort_dict_list_by_key(input_, 'a') == expected_result

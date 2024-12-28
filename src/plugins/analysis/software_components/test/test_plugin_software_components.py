@@ -16,7 +16,7 @@ class TestAnalysisPluginsSoftwareComponents:
 
         processed_file = analysis_plugin.process_object(test_file)
         results = processed_file.processed_analysis[analysis_plugin.NAME]
-        assert len(results) == 2, 'incorrect number of software components found'  # noqa: PLR2004
+        assert len(results) == 2, 'incorrect number of software components found'
         assert 'MyTestRule' in results, 'test Rule match not found'
         assert (
             results['MyTestRule']['meta']['software_name'] == 'Test Software'
@@ -46,6 +46,7 @@ class TestAnalysisPluginsSoftwareComponents:
             ('Foo 00.1.', '0.1', {}),
             ('\x001.22.333\x00', '1.22.333', {}),
             ('Foo 03.02.01abc', '3.2.1a', {}),
+            ('OpenSSH_9.6p1', '9.6p1', {}),
             ('OpenSSL 1.1.0i', '1.1.0i', {}),
             ('OpenSSL 0.9.8zh', '0.9.8zh', {'version_regex': '\\d\\.\\d\\.\\d[a-z]{0,2}'}),
             ('Foo v1.2.3', 'v1.2.3', {'version_regex': 'v?\\d\\.\\d\\.\\d'}),

@@ -1,9 +1,14 @@
 import logging
 import os
+import re
+import shutil
 import subprocess
 from contextlib import suppress
 from pathlib import Path
+from shlex import split
 from subprocess import PIPE, STDOUT
+
+from packaging.version import parse as parse_version
 
 import config
 from helperFunctions.install import (
@@ -16,12 +21,15 @@ from helperFunctions.install import (
     read_package_list_from_file,
     run_cmd_with_logging,
 )
+from storage.graphql.util import get_env
 
 DEFAULT_CERT = '.\n.\n.\n.\n.\nexample.com\n.\n\n\n'
 INSTALL_DIR = Path(__file__).parent
 PIP_DEPENDENCIES = INSTALL_DIR / 'requirements_frontend.txt'
-MIME_ICON_DIR = INSTALL_DIR.parent / 'web_interface' / 'static' / 'file_icons'
+STATIC_WEB_DIR = INSTALL_DIR.parent / 'web_interface' / 'static'
+MIME_ICON_DIR = STATIC_WEB_DIR / 'file_icons'
 ICON_THEME_INSTALL_PATH = Path('/usr/share/icons/Papirus/24x24')
+NODEENV_DIR = 'nodeenv'
 
 
 def execute_commands_and_raise_on_return_code(commands, error=None):
@@ -102,7 +110,8 @@ def _configure_nginx():
             # copy is better on redhat to respect selinux context
             '(cd ../config && sudo install -m 644 $PWD/nginx.conf /etc/nginx/nginx.conf)',
             '(sudo mkdir /etc/nginx/error || true)',
-            '(cd ../web_interface/templates/ && sudo ln -s $PWD/maintenance.html /etc/nginx/error/maintenance.html) || true',  # noqa: E501
+            '(cd ../web_interface/templates/ '
+            '&& sudo ln -s $PWD/maintenance.html /etc/nginx/error/maintenance.html) || true',
         ],
         error='configuring nginx',
     )
@@ -137,11 +146,52 @@ def _copy_mime_icons():
         ('places/folder-brown.svg', 'folder.svg'),
         ('status/dialog-error.svg', 'not_analyzed.svg'),
         ('emblems/emblem-symbolic-link.svg', 'mimetypes/inode-symlink.svg'),
+        ('apps/tux.svg', 'linux.svg'),
     ]:
         run_cmd_with_logging(f'cp -rL {ICON_THEME_INSTALL_PATH / source} {MIME_ICON_DIR / target}')
 
 
-def main(skip_docker, radare, nginx, distribution):
+def _install_nodejs(nodejs_version: str = '22'):
+    latest_version = _find_latest_node_version(nodejs_version)
+    with OperateInDirectory(STATIC_WEB_DIR):
+        if Path(NODEENV_DIR).is_dir() and not _node_version_is_up_to_date(latest_version):
+            shutil.rmtree(NODEENV_DIR)
+
+        if Path(NODEENV_DIR).is_dir():
+            logging.info('Skipping nodeenv installation (already exists)')
+        else:
+            run_cmd_with_logging(f'nodeenv {NODEENV_DIR} --node={latest_version} --prebuilt')
+        run_cmd_with_logging(f'. {NODEENV_DIR}/bin/activate && npm install --no-fund .', shell=True)
+
+
+def _find_latest_node_version(target_version: str) -> str:
+    proc = subprocess.run(split('nodeenv --list'), capture_output=True, text=True, check=False)
+    if proc.returncode != 0:
+        raise InstallationError('nodejs installation failed. Is nodeenv installed?')
+    available_versions = [
+        parse_version(v) for v in re.split(r'[\n\t ]', proc.stderr) if v and v.startswith(target_version)
+    ]
+    if not available_versions:
+        raise InstallationError(f'No nodejs installation candidates found for version "{target_version}"')
+    return str(max(available_versions))
+
+
+def _node_version_is_up_to_date(nodejs_version: str) -> bool:
+    try:
+        proc = subprocess.run(split('./nodeenv/bin/node --version'), capture_output=True, text=True, check=True)
+        installed_version = proc.stdout.strip().lstrip('v')
+        return installed_version == nodejs_version
+    except (subprocess.CalledProcessError, OSError):  # venv dir exists but node is not installed correctly
+        return False
+
+
+def _init_hasura():
+    with OperateInDirectory(INSTALL_DIR.parent / 'storage' / 'graphql' / 'hasura'):
+        run_cmd_with_logging('docker compose up -d', env=get_env())
+        run_cmd_with_logging('python3 init_hasura.py')
+
+
+def main(skip_docker, radare, nginx, distribution, skip_hasura):
     if distribution != 'fedora':
         pkgs = read_package_list_from_file(INSTALL_DIR / 'apt-pkgs-frontend.txt')
         apt_install_packages(*pkgs)
@@ -156,10 +206,7 @@ def main(skip_docker, radare, nginx, distribution):
 
     install_pip_packages(PIP_DEPENDENCIES)
 
-    # npm does not allow us to install packages to a specific directory
-    with OperateInDirectory('../../src/web_interface/static'):
-        # EBADENGINE can probably be ignored because we probably don't need node.
-        run_cmd_with_logging('npm install --no-fund .')
+    _install_nodejs()
 
     # create user database
     _create_directory_for_authentication()
@@ -169,6 +216,9 @@ def main(skip_docker, radare, nginx, distribution):
 
     if not skip_docker:
         _install_docker_images(radare)
+
+    if not skip_hasura:
+        _init_hasura()
 
     if not MIME_ICON_DIR.is_dir():
         MIME_ICON_DIR.mkdir()

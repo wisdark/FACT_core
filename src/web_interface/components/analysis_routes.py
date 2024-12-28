@@ -2,19 +2,20 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from contextlib import suppress
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from common_helper_files import get_binary_from_file
 from flask import flash, redirect, render_template, render_template_string, request, url_for
 from flask_login.utils import current_user
+from werkzeug.exceptions import BadRequestKeyError
 
 import config
 from helperFunctions.data_conversion import none_to_none
 from helperFunctions.database import get_shared_session
 from helperFunctions.fileSystem import get_src_dir
-from helperFunctions.task_conversion import check_for_errors, convert_analysis_task_to_fw_obj, create_re_analyze_task
+from helperFunctions.task_conversion import convert_analysis_task_to_fw_obj, create_re_analyze_task
 from helperFunctions.web_interface import get_template_as_string
 from objects.firmware import Firmware
 from web_interface.components.compare_routes import get_comparison_uid_dict_from_session
@@ -33,9 +34,7 @@ if TYPE_CHECKING:
 
 
 def get_analysis_view(view_name):
-    view_path = os.path.join(  # noqa: PTH118
-        get_src_dir(), f'web_interface/templates/analysis_plugins/{view_name}.html'
-    )
+    view_path = Path(get_src_dir()) / f'web_interface/templates/analysis_plugins/{view_name}.html'
     return get_binary_from_file(view_path).decode('utf-8')
 
 
@@ -59,9 +58,8 @@ class AnalysisRoutes(ComponentBase):
             if not file_obj:
                 return render_template('uid_not_found.html', uid=uid)
             if selected_analysis is not None and selected_analysis not in file_obj.processed_analysis:
-                return render_template(
-                    'error.html', message=f'The requested analysis ({selected_analysis}) has not run (yet)'
-                )
+                flash(f'The requested analysis ({selected_analysis}) has not run (yet)', 'warning')
+                selected_analysis = None
             if isinstance(file_obj, Firmware):
                 root_uid = file_obj.uid
                 other_versions = frontend_db.get_other_versions_of_firmware(file_obj)
@@ -133,7 +131,7 @@ class AnalysisRoutes(ComponentBase):
 
     @roles_accepted(*PRIVILEGES['submit_analysis'])
     @AppRoute('/update-analysis/<uid>', GET)
-    def get_update_analysis(self, uid, re_do=False, error=None):
+    def get_update_analysis(self, uid, re_do=False):
         with get_shared_session(self.db.frontend) as frontend_db:
             old_firmware = frontend_db.get_object(uid=uid)
             if old_firmware is None:
@@ -143,8 +141,7 @@ class AnalysisRoutes(ComponentBase):
             vendor_list = frontend_db.get_vendor_list()
             device_name_dict = frontend_db.get_device_name_dict()
 
-        plugin_dict = self.intercom.get_available_analysis_plugins()
-
+        plugin_dict = {k: t[:3] for k, t in self.intercom.get_available_analysis_plugins().items() if k != 'unpacker'}
         current_analysis_preset = _add_preset_from_firmware(plugin_dict, old_firmware)
         analysis_presets = [current_analysis_preset, *list(config.frontend.analysis_preset)]
 
@@ -154,23 +151,23 @@ class AnalysisRoutes(ComponentBase):
             'upload/upload.html',
             device_classes=device_class_list,
             vendors=vendor_list,
-            error=error if error is not None else {},
             device_names=json.dumps(device_name_dict, sort_keys=True),
             firmware=old_firmware,
             analysis_plugin_dict=plugin_dict,
             analysis_presets=analysis_presets,
             title=title,
-            plugin_set=current_analysis_preset,
+            selected_preset=current_analysis_preset,
         )
 
     @roles_accepted(*PRIVILEGES['submit_analysis'])
     @AppRoute('/update-analysis/<uid>', POST)
     def post_update_analysis(self, uid, re_do=False):
-        analysis_task = create_re_analyze_task(request, uid=uid)
+        try:
+            analysis_task = create_re_analyze_task(request, uid=uid)
+        except BadRequestKeyError as error:
+            logging.warning(f'Received invalid update analysis request: Key {KeyError.__str__(error)} is missing!')
+            raise
         force_reanalysis = request.form.get('force_reanalysis') == 'true'
-        error = check_for_errors(analysis_task)
-        if error:
-            return self.get_update_analysis(uid=uid, re_do=re_do, error=error)
         self._schedule_re_analysis_task(uid, analysis_task, re_do, force_reanalysis)
         return render_template('upload/upload_successful.html', uid=uid)
 
@@ -242,7 +239,6 @@ def _add_preset_from_firmware(plugin_dict, fw: Firmware):
 
     previously_processed_plugins = list(fw.processed_analysis.keys())
     with suppress(ValueError):
-        plugin_dict.pop('unpacker')
         previously_processed_plugins.remove('unpacker')
     for plugin in previously_processed_plugins:
         if plugin in plugin_dict:

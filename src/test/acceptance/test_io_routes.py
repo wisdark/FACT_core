@@ -1,6 +1,6 @@
 import pytest
-from fact_helper_file import get_file_type_from_binary
 
+from helperFunctions import magic
 from storage.db_interface_comparison import ComparisonDbInterface
 from test.common_helper import create_test_firmware
 
@@ -58,14 +58,14 @@ class TestAcceptanceIoRoutes:
 
     def test_pdf_download(self, test_client, backend_db):
         response = test_client.get(f'/pdf-download/{self.test_fw.uid}')
-        assert response.status_code == 200, 'pdf download link failed'  # noqa: PLR2004
+        assert response.status_code == 200, 'pdf download link failed'
         assert b'File not found in database' in response.data, 'radare view should fail on missing uid'
 
         backend_db.add_object(self.test_fw)
 
         response = test_client.get(f'/pdf-download/{self.test_fw.uid}')
 
-        assert response.status_code == 200, 'pdf download failed'  # noqa: PLR2004
+        assert response.status_code == 200, 'pdf download failed'
         device = self.test_fw.device_name.replace(' ', '_')
         assert response.headers['Content-Disposition'] == f'attachment; filename={device}_analysis_report.pdf'
-        assert get_file_type_from_binary(response.data)['mime'] == 'application/pdf'
+        assert magic.from_buffer(response.data, mime=True) == 'application/pdf'

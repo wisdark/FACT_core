@@ -108,6 +108,13 @@ class Frontend(Common):
 
     radare2_url: str
 
+    hasura: Frontend.Hasura
+
+    class Hasura(BaseModel):
+        model_config = ConfigDict(extra='forbid')
+        admin_secret: str
+        port: int = 33_333
+
 
 class Backend(Common):
     model_config = ConfigDict(extra='forbid')
@@ -123,6 +130,9 @@ class Backend(Common):
         delay: float
         base_port: int
 
+    class BinarySearch(BaseModel):
+        max_strings_per_match: int = 10
+
     class PluginDefaults(BaseModel):
         processes: int
 
@@ -135,6 +145,7 @@ class Backend(Common):
     collector_worker_count: int = 2
 
     unpacking: Backend.Unpacking
+    binary_search: Backend.BinarySearch
 
     firmware_file_storage_directory: str
 
@@ -142,6 +153,7 @@ class Backend(Common):
     ssdeep_ignore: int
 
     intercom_poll_delay: float
+    analysis_status_update_interval: float = 4.5
 
     throw_exceptions: bool
 
@@ -156,7 +168,7 @@ class Backend(Common):
         return value
 
 
-def load(path: str | None = None):
+def load(path: str | Path | None = None):
     """Load the config file located at ``path``.
     The file must be a toml file and is read into instances of :py:class:`~config.Backend`,
     :py:class:`~config.Frontend` and :py:class:`~config.Common`.
@@ -175,8 +187,10 @@ def load(path: str | None = None):
     Frontend.model_rebuild()
     if path is None:
         path = Path(__file__).parent / 'config/fact-core-config.toml'
+    elif isinstance(path, str):
+        path = Path(path)
 
-    with open(path, encoding='utf8') as f:  # noqa: PTH123
+    with path.open(encoding='utf8') as f:
         cfg = toml.load(f)
 
     _replace_hyphens_with_underscores(cfg)

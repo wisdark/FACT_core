@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from pathlib import Path
 from queue import Empty
 from typing import TYPE_CHECKING
 
 import pytest
+from flaky import flaky
 
 from objects.firmware import Firmware
 from test.common_helper import get_test_data_dir
@@ -22,12 +22,13 @@ INCLUDED_FILE_COUNT = 4
 
 
 def add_test_file(scheduler, path_in_test_dir):
-    firmware = Firmware(file_path=str(Path(get_test_data_dir(), path_in_test_dir)))
+    firmware = Firmware(file_path=str(get_test_data_dir() / path_in_test_dir))
     firmware.release_date = '1990-01-16'
     firmware.version, firmware.vendor, firmware.device_name, firmware.device_class = ['foo'] * 4
     scheduler.add_task(firmware)
 
 
+@flaky(max_runs=3, min_passes=1)  # test may fail when the CI is very busy
 @pytest.mark.SchedulerTestConfig(items_to_unpack=4)
 def test_check_collision(
     frontend_db,
@@ -36,21 +37,22 @@ def test_check_collision(
     unpacking_finished_event,
 ):
     add_test_file(unpacking_scheduler, 'regression_one')
-    assert unpacking_finished_event.wait(timeout=20)
+    assert unpacking_finished_event.wait(timeout=25)
     unpacking_finished_counter.value = 0
     unpacking_finished_event.clear()
 
     add_test_file(unpacking_scheduler, 'regression_two')
-    assert unpacking_finished_event.wait(timeout=20)
+    assert unpacking_finished_event.wait(timeout=25)
 
     fo_from_db = frontend_db.get_object(TARGET_UID)
-    assert len(fo_from_db.virtual_file_path) == 2, 'fo should have two parents'  # noqa: PLR2004
+    assert len(fo_from_db.virtual_file_path) == 2, 'fo should have two parents'
     assert FIRST_ROOT_ID in fo_from_db.virtual_file_path
     assert fo_from_db.virtual_file_path[FIRST_ROOT_ID] == ['/test']
     assert SECOND_ROOT_ID in fo_from_db.virtual_file_path
     assert fo_from_db.virtual_file_path[SECOND_ROOT_ID] == ['/test']
 
 
+@flaky(max_runs=3, min_passes=1)  # test may fail when the CI is very busy
 @pytest.mark.SchedulerTestConfig(items_to_unpack=4)
 def test_unpacking_skip(
     frontend_db,
@@ -60,7 +62,7 @@ def test_unpacking_skip(
 ):
     add_test_file(unpacking_scheduler, 'vfp_test.zip')
 
-    assert unpacking_finished_event.wait(timeout=20)
+    assert unpacking_finished_event.wait(timeout=25)
 
     unpacked_objects = _collect_unpacked_files(post_unpack_queue)
     assert len(list(unpacked_objects)) == INCLUDED_FILE_COUNT

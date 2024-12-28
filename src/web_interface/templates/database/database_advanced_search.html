@@ -7,19 +7,6 @@
     <script type="text/javascript" src="{{ url_for('static', filename='js/advanced_search.js') }}"></script>
 {% endblock %}
 
-{% block styles %}
-    <style>
-        .example-json {
-            font-family: 'Deja Vu Sans Mono', monospace;
-            font-size: 0.9em;
-        }
-        .example-comment {
-            color: grey;
-            font-size: 0.9em;
-        }
-    </style>
-{% endblock %}
-
 
 {% block body %}
 
@@ -96,7 +83,7 @@
             </p>
             <p>
                 Check if array contains value (JSON columns only): <kbd>"$contains"</kbd><br />
-                <span class="example-json">{"processed_analysis.software_components.OpenSSL.meta.version": {"$contains": "1.0.1f"}}</span><br />
+                <span class="example-json">{"processed_analysis.software_components.OpenSSL.meta.version": {"$contains": ["1.0.1f"]}}</span><br />
                 <span class="example-comment">Select files where OpenSSL version 1.0.1f was found</span>
             </p>
 

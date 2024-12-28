@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import config
 from analysis.PluginBase import AnalysisBasePlugin
 from helperFunctions.tag import TagColor
 from plugins.mime_blacklists import MIME_BLACKLIST_NON_EXECUTABLE
@@ -31,8 +32,11 @@ class AnalysisPlugin(AnalysisBasePlugin):
     DESCRIPTION = 'lookup CVE vulnerabilities'
     MIME_BLACKLIST = MIME_BLACKLIST_NON_EXECUTABLE
     DEPENDENCIES = ['software_components']  # noqa: RUF012
-    VERSION = '0.1.0'
+    VERSION = '0.2.0'
     FILE = __file__
+
+    def additional_setup(self):
+        self.min_crit_score = getattr(config.backend.plugin.get(self.NAME, {}), 'min-critical-score', 9.0)
 
     def process_object(self, file_object: FileObject) -> FileObject:
         """
@@ -85,9 +89,8 @@ class AnalysisPlugin(AnalysisBasePlugin):
                     self.add_analysis_tag(file_object, 'CVE', 'critical CVE', TagColor.RED, True)
                     return
 
-    @staticmethod
-    def _entry_has_critical_rating(entry: dict[str, str]) -> bool:
+    def _entry_has_critical_rating(self, entry: dict[str, dict[str, str]]) -> bool:
         """
         Check if the given entry has a critical rating.
         """
-        return any(entry[key] != 'N/A' and float(entry[key]) >= 9.0 for key in ['score2', 'score3'])  # noqa: PLR2004
+        return any(value != 'N/A' and float(value) >= self.min_crit_score for value in entry['scores'].values())

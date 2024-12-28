@@ -5,13 +5,17 @@ from time import sleep, time
 from typing import Any
 
 import config
-from intercom.common_redis_binding import InterComRedisInterface, generate_task_id
+from intercom.common_redis_binding import generate_task_id
+from storage.redis_interface import RedisInterface
 
 
-class InterComFrontEndBinding(InterComRedisInterface):
+class InterComFrontEndBinding:
     """
     Internal Communication FrontEnd Binding
     """
+
+    def __init__(self):
+        self.redis = RedisInterface()
 
     def add_analysis_task(self, fw):
         self._add_to_redis_queue('analysis_task', fw, fw.uid)
@@ -30,6 +34,9 @@ class InterComFrontEndBinding(InterComRedisInterface):
 
     def delete_file(self, uid_list: set[str]):
         self._add_to_redis_queue('file_delete_task', uid_list)
+
+    def cancel_analysis(self, root_uid: str):
+        self._add_to_redis_queue('cancel_task', root_uid)
 
     def get_available_analysis_plugins(self):
         plugin_dict = self.redis.get('analysis_plugins', delete=False)

@@ -33,7 +33,7 @@ def test_get_last_added_firmwares(frontend_db, backend_db):
     backend_db.insert_object(fw4)
 
     result = frontend_db.get_last_added_firmwares(limit=3)
-    assert len(result) == 3  # noqa: PLR2004
+    assert len(result) == 3
     # fw4 was uploaded last and should be first in the list and so forth
     assert [fw.uid for fw in result] == ['fw4', 'fw3', 'fw2']
     assert 'foobar' in result[0].tags, 'unpacker tag should be set'
@@ -81,7 +81,7 @@ def test_get_data_for_nice_list(frontend_db, backend_db):
     backend_db.insert_multiple_objects(fw, fo)
 
     nice_list_data = frontend_db.get_data_for_nice_list(uid_list, uid_list[0])
-    assert len(nice_list_data) == 2  # noqa: PLR2004
+    assert len(nice_list_data) == 2
     expected_result = ['current_virtual_path', 'file_name', 'mime-type', 'size', 'uid']
     assert sorted(nice_list_data[0].keys()) == expected_result
     assert nice_list_data[0]['uid'] == TEST_FW.uid
@@ -227,7 +227,7 @@ def test_generic_search_nested(frontend_db, backend_db):
     assert frontend_db.generic_search({'processed_analysis.plugin.nested_2.inner_nested.test': 3}) == [fo.uid]
 
 
-def test_generic_search_json_array(frontend_db, backend_db):
+def test_generic_search_list_contains(frontend_db, backend_db):
     fo, fw = create_fw_with_child_fo()
     fo.processed_analysis = {'plugin': generate_analysis_entry(analysis_result={'list': ['a', 'b']})}
     fw.processed_analysis = {'plugin': generate_analysis_entry(analysis_result={'list': ['b', 'c']})}
@@ -238,6 +238,21 @@ def test_generic_search_json_array(frontend_db, backend_db):
     assert frontend_db.generic_search({'processed_analysis.plugin.list': {'$contains': ['a']}}) == [fo.uid]
     assert set(frontend_db.generic_search({'processed_analysis.plugin.list': {'$contains': 'b'}})) == {fo.uid, fw.uid}
     assert frontend_db.generic_search({'processed_analysis.plugin.list': {'$contains': 'd'}}) == []
+
+
+def test_generic_search_dict_contains(frontend_db, backend_db):
+    fo, fw = create_fw_with_child_fo()
+    fo.processed_analysis = {'plugin': generate_analysis_entry(analysis_result={'list': {'a': 1, 'b': 2}})}
+    fw.processed_analysis = {'plugin': generate_analysis_entry(analysis_result={'list': {'b': 2, 'c': 3}})}
+    backend_db.insert_object(fw)
+    backend_db.insert_object(fo)
+
+    assert frontend_db.generic_search({'processed_analysis.plugin.list': {'$contains': {'a': 1}}}) == [fo.uid]
+    assert set(frontend_db.generic_search({'processed_analysis.plugin.list': {'$contains': {'b': 2}}})) == {
+        fo.uid,
+        fw.uid,
+    }
+    assert frontend_db.generic_search({'processed_analysis.plugin.list': {'$contains': {'a': 2}}}) == []
 
 
 def test_generic_search_dict_in_list(backend_db, frontend_db):
@@ -323,7 +338,7 @@ def test_generic_search_tags(frontend_db, backend_db):
     assert frontend_db.generic_search({'firmware_tags': 'bar'}) == ['fw_1']
     assert frontend_db.generic_search({'firmware_tags': 'test'}) == ['fw_2']
     assert sorted(frontend_db.generic_search({'firmware_tags': 'foo'})) == ['fw_1', 'fw_2']
-    assert sorted(frontend_db.generic_search({'firmware_tags': {'$contains': 'foo'}})) == ['fw_1', 'fw_2']
+    assert sorted(frontend_db.generic_search({'firmware_tags': {'$contains': ['foo']}})) == ['fw_1', 'fw_2']
     assert sorted(frontend_db.generic_search({'firmware_tags': {'$overlap': ['bar', 'test']}})) == ['fw_1', 'fw_2']
     assert frontend_db.generic_search({'firmware_tags': {'$overlap': ['none']}}) == []
 
@@ -408,11 +423,9 @@ def test_get_latest_comments(frontend_db, backend_db):
     fo2.comments = [{'author': 'foo', 'comment': 'comment2', 'time': '2'}]
     backend_db.insert_object(fo2)
 
-    assert (
-        len(frontend_db.get_latest_comments(limit=10)) == 3  # noqa: PLR2004
-    ), 'we added 3 comments, so we expect that many here'
+    assert len(frontend_db.get_latest_comments(limit=10)) == 3, 'we added 3 comments, so we expect that many here'
     result = frontend_db.get_latest_comments(limit=2)
-    assert len(result) == 2  # noqa: PLR2004
+    assert len(result) == 2
     assert result[0]['time'] == '3', 'the first entry should have the newest timestamp'
     assert result[1]['time'] == '2'
     assert result[1]['comment'] == 'comment2'
@@ -446,8 +459,8 @@ def test_get_file_tree_data(frontend_db, backend_db):
     child_fo.processed_analysis = {}  # simulate that file_type did not run yet
     backend_db.insert_multiple_objects(fw, parent_fo, child_fo)
 
-    result = frontend_db.get_file_tree_data([fw.uid, parent_fo.uid, child_fo.uid])
-    assert len(result) == 3  # noqa: PLR2004
+    result = frontend_db.get_file_tree_data([fw.uid, parent_fo.uid, child_fo.uid], fw.uid)
+    assert len(result) == 3
     result_by_uid = {r.uid: r for r in result}
     assert result_by_uid[parent_fo.uid].uid == parent_fo.uid
     assert result_by_uid[parent_fo.uid].file_name == parent_fo.file_name
@@ -568,28 +581,30 @@ def test_get_tag_list(frontend_db, backend_db):
 def test_get_query_from_cache(frontend_db, frontend_editing_db):
     assert frontend_db.get_query_from_cache('non-existent') is None
 
-    id_ = frontend_editing_db.add_to_search_query_cache('foo', 'bar')
+    match_data = {'uid': {'rule': []}}
+    id_ = frontend_editing_db.add_to_search_query_cache('foo', match_data, 'bar')
     entry = frontend_db.get_query_from_cache(id_)
     assert isinstance(entry, CachedQuery)
     assert entry.query == 'foo'
     assert entry.yara_rule == 'bar'
+    assert entry.match_data == match_data
 
 
 def test_get_cached_count(frontend_db, frontend_editing_db):
     assert frontend_db.get_total_cached_query_count() == 0
 
-    frontend_editing_db.add_to_search_query_cache('foo', 'bar')
+    frontend_editing_db.add_to_search_query_cache('foo', {}, 'bar')
     assert frontend_db.get_total_cached_query_count() == 1
 
-    frontend_editing_db.add_to_search_query_cache('bar', 'foo')
-    assert frontend_db.get_total_cached_query_count() == 2  # noqa: PLR2004
+    frontend_editing_db.add_to_search_query_cache('bar', {}, 'foo')
+    assert frontend_db.get_total_cached_query_count() == 2
 
 
 def test_search_query_cache(frontend_db, frontend_editing_db):
     assert frontend_db.search_query_cache(offset=0, limit=10) == []
 
-    id1 = frontend_editing_db.add_to_search_query_cache('foo', 'rule bar{}')
-    id2 = frontend_editing_db.add_to_search_query_cache('bar', 'rule foo{}')
+    id1 = frontend_editing_db.add_to_search_query_cache('foo', {}, 'rule bar{}')
+    id2 = frontend_editing_db.add_to_search_query_cache('bar', {}, 'rule foo{}')
     assert sorted(frontend_db.search_query_cache(offset=0, limit=10)) == [
         (id1, 'rule bar{}', ['bar']),
         (id2, 'rule foo{}', ['foo']),

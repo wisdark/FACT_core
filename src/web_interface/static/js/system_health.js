@@ -1,6 +1,3 @@
-const BOOTSTRAP_DANGER_COLOR = "#dc3545";
-const BOOTSTRAP_PRIMARY_COLOR = "#007bff";
-
 function change_button(button_id) {
     element = document.getElementById(button_id);
     ["fa-caret-down", "fa-caret-up"].forEach(class_name => element.classList.toggle(class_name));
@@ -86,23 +83,33 @@ function updatePluginCard(pluginName, pluginData) {
     const statsElement = document.getElementById(`${pluginName}-stats`);
     if (pluginData.active > 0) {
         activeIndicatorElement.classList.add("fa-spin");
-        activeIndicatorElement.style.color = BOOTSTRAP_PRIMARY_COLOR;
-        activeElement.style.color = BOOTSTRAP_PRIMARY_COLOR;
+        activeIndicatorElement.classList.remove("text-muted");
+        activeIndicatorElement.classList.add("text-primary");
+        activeElement.classList.remove("text-muted");
+        activeElement.classList.add("text-primary");
     } else {
         activeIndicatorElement.classList.remove("fa-spin");
-        activeIndicatorElement.style.color = "darkgrey";
-        activeElement.style.color = "darkgrey";
+        activeIndicatorElement.classList.remove("text-primary");
+        activeIndicatorElement.classList.add("text-muted");
+        activeElement.classList.remove("text-primary");
+        activeElement.classList.add("text-muted");
     }
     activeElement.innerText = pluginData.active.toString();
     if (pluginData.queue > 100) {
-        queueIndicatorElement.style.color = BOOTSTRAP_DANGER_COLOR;
-        queueElement.style.color = BOOTSTRAP_DANGER_COLOR;
+        queueIndicatorElement.classList.remove("text-muted");
+        queueIndicatorElement.classList.add("text-danger");
+        queueElement.classList.remove("text-muted");
+        queueElement.classList.add("text-danger");
     } else if (pluginData.queue > 0) {
-        queueIndicatorElement.style.color = "black";
-        queueElement.style.color = "black";
+        queueIndicatorElement.classList.remove("text-muted");
+        queueIndicatorElement.classList.remove("text-danger");
+        queueElement.classList.remove("text-muted");
+        queueElement.classList.remove("text-danger");
     } else {
-        queueIndicatorElement.style.color = "darkgrey";
-        queueElement.style.color = "darkgrey";
+        queueIndicatorElement.classList.remove("text-danger");
+        queueIndicatorElement.classList.add("text-muted");
+        queueElement.classList.remove("text-danger");
+        queueElement.classList.add("text-muted");
     }
     queueElement.innerText = pluginData.queue.toString();
     outQueueElement.innerText = pluginData.out_queue.toString();
@@ -146,48 +153,76 @@ function updateCurrentAnalyses(analysisData) {
     const currentAnalysesElement = document.getElementById("current-analyses");
     const currentAnalysesHTML = [].concat(
         Object.entries(analysisData.current_analyses)
-            .map(([uid, analysisStats]) => createCurrentAnalysisItem(analysisStats, uid, false)),
+            .map(([uid, analysisStats]) => createCurrentAnalysisItem(analysisStats, uid)),
         Object.entries(analysisData.recently_finished_analyses)
             .map(([uid, analysisStats]) => createCurrentAnalysisItem(analysisStats, uid, true)),
+        Object.entries(analysisData.recently_canceled_analyses)
+            .map(([uid, analysisStats]) => createCurrentAnalysisItem(analysisStats, uid, false, true)),
     ).join("\n");
     currentAnalysesElement.innerHTML = currentAnalysesHTML !== "" ? currentAnalysesHTML : "No analysis in progress";
     document.querySelectorAll('div[role=tooltip]').forEach((element) => {element.remove();});
     $("body").tooltip({selector: '[data-toggle="tooltip"]'});  // update tooltips for dynamically created elements
 }
 
-function createCurrentAnalysisItem(data, uid, isFinished) {
+function createCurrentAnalysisItem(data, uid, isFinished=false, isCancelled=false) {
     const timeString = isFinished ? `Finished in ${getDuration(null, data.duration)}` : `${getDuration(data.start_time)}`;
     const total = isFinished ? data.total_files_count : data.total_count;
     const showDetails = Boolean(document.getElementById("ca-show-details").checked);
-    const width = isFinished || !showDetails ? "30px": "50%";
+    const width = isFinished || isCancelled || !showDetails ? "30px": "50%";
     const unpackingIsFinished = isFinished ? null : (data.unpacked_count == data.total_count);
-    const padding = isFinished || !showDetails ? 55 : 211;
+    const padding = isFinished || isCancelled || !showDetails ? 55 : 211;
+    const cancelButton = isFinished || isCancelled ? '' : `
+        <button type="button" class="close" onclick="cancelAnalysis(this, '${uid}')" style="font-size: 1.1rem; color: red; opacity: 1;">
+            <span aria-hidden="true">
+                <i class="fas fa-trash-alt" data-toggle="tooltip" data-placement="bottom" title="" data-original-title="Cancel Analysis"></i>
+            </span>
+        </button>
+    `;
+    const elapsedTime = isCancelled ? 'Cancelled' : `
+        <tr>
+            ${createIconCell("clock", "Elapsed Time", width)}
+            <td>
+                <p class="card-text">${timeString}</p>
+            </td>
+        </tr>
+    `;
     return `
-        <a href='/analysis/${uid}/ro/${uid}' style="color: black;">
-            <div class="card clickable mt-2">
-                <h6 class="card-title p-2" style="margin-bottom: 0 !important; padding-bottom: 0 !important;">${data.hid}</h6>
+            <div class="card mt-2">
+                <h6 class="card-title p-2" style="margin-bottom: 0 !important; padding-bottom: 0 !important;">
+                    <a class="clickable" href='/analysis/${uid}/ro/${uid}'>
+                        ${data.hid}
+                    </a>
+                    ${cancelButton}
+                </h6>
                 <div class="card-body p-2">
                     <table class="table table-borderless table-sm mb-0">
-                        <tr>
-                            ${createIconCell("clock", "Elapsed Time", width)}
-                            <td>
-                                <p class="card-text">${timeString}</p>
-                            </td>
-                        </tr>
+                        ${elapsedTime}
                         <tr>
                             ${createIconCell("box-open", "Unpacking Progress", width)}
-                            ${createProgressBarCell(isFinished ? data.total_files_count : data.unpacked_count, total, padding)}
+                            ${createProgressBarCell(isFinished ? data.total_files_count : data.unpacked_count, total, padding, isFinished, isCancelled)}
                         </tr>
                         <tr>
                             ${createIconCell("microscope", "Analysis Progress", width)}
-                            ${createProgressBarCell(isFinished ? data.total_files_count : data.analyzed_count, total, padding)}
+                            ${createProgressBarCell(isFinished ? data.total_files_count : data.analyzed_count, total, padding, isFinished, isCancelled)}
                         </tr>
-                        ${!isFinished && showDetails ? createPluginProgress(data, unpackingIsFinished) : ""}
+                        ${!isFinished && !isCancelled && showDetails ? createPluginProgress(data, unpackingIsFinished) : ""}
                     </table>
                 </div>
             </div>
-        </a>
     `;
+}
+
+function cancelAnalysis(element, root_uid) {
+    element.innerHTML = `
+        <div class="spinner-border text-danger" role="status">
+            <span class="sr-only">Cancelling...</span>
+        </div>
+    `;
+    fetch(`/ajax/cancel_analysis/${root_uid}`).then(response => {
+        if (!response.ok) {
+            console.log(`Error: could not cancel analysis of ${root_uid}`);
+        }
+    });
 }
 
 function createPluginProgress(data, unpackingIsFinished) {
@@ -205,10 +240,10 @@ function createSinglePluginProgress(plugin, count, total, unpackingIsFinished) {
     `;
 }
 
-function createProgressBarCell(count, total, padding_offset=211, unpackingIsFinished=true) {
+function createProgressBarCell(count, total, padding_offset=211, unpackingIsFinished=true, isCancelled=false) {
     const progress = count / total * 100;
     const progressString = `${count} / ${total} (${progress.toFixed(1)}%)`;
-    const divClass = (progress >= 100.0) ? `progress-bar ${unpackingIsFinished ? "bg-success" : "bg-warning"}` : "progress-bar";
+    const divClass = (progress >= 100.0) ? `progress-bar ${unpackingIsFinished ? "bg-success" : "bg-warning"}` : isCancelled ? "bg-danger" : "progress-bar";
     const pStyle = {
         "color": "white",
         "font-size": "0.75rem",

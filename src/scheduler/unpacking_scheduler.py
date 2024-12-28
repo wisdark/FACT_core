@@ -107,7 +107,8 @@ class UnpackingScheduler:
         )
         self.stop_containers()
         self._clean_tmp_dirs()
-        self.manager.shutdown()
+        if self.manager:
+            self.manager.shutdown()
         logging.info('Unpacking scheduler offline')
 
     def _clean_tmp_dirs(self):
@@ -138,8 +139,9 @@ class UnpackingScheduler:
             self.worker_tmp_dirs.append(tmp_dir)
 
     def stop_containers(self):
-        with ThreadPoolExecutor(max_workers=len(self.workers)) as pool:
-            pool.map(lambda container: container.stop(), self.workers)
+        if self.workers:
+            with ThreadPoolExecutor(max_workers=len(self.workers)) as pool:
+                pool.map(lambda container: container.stop(), self.workers)
 
     def extraction_loop(self):
         logging.debug(f'Starting unpacking scheduler loop (pid={os.getpid()})')
@@ -191,6 +193,10 @@ class UnpackingScheduler:
     def work_thread(self, task: FileObject, container: ExtractionContainer):
         if isinstance(task, Firmware):
             self._init_currently_unpacked(task)
+        elif task.root_uid not in self.currently_extracted:
+            # this should only happen if the unpacking of the parent FW was canceled => skip unpacking
+            logging.debug(f'Cancelling unpacking of {task.uid}. Reason: Unpacking of FW {task.root_uid} was cancelled')
+            return
 
         with TemporaryDirectory(dir=container.tmp_dir.name) as tmp_dir:
             try:
@@ -331,3 +337,7 @@ class UnpackingScheduler:
                 logging.warning(f'Starting unpacking of {fo.uid} but it is currently also still being unpacked')
             else:
                 self.currently_extracted[fo.uid] = {'remaining': {fo.uid}, 'done': set(), 'delayed_vfp_update': {}}
+
+    def cancel_unpacking(self, root_uid: str):
+        if self.currently_extracted is not None and root_uid in self.currently_extracted:
+            self.currently_extracted.pop(root_uid)
